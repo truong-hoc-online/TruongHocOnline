@@ -15,7 +15,8 @@ có tính năng và khu vực riêng; một ngày nhiều giai đoạn (chuẩn 
 
 ```
 E:\TruongHocOnline\        git riêng, nhánh main, remote origin = github.com/truong-hoc-online/TruongHocOnline
-                           (đã push; 2026-11-03 repo còn PRIVATE, Pages chưa bật → link 404)
+                           (public; GitHub Pages bật 2026-11-03: https://truong-hoc-online.github.io/TruongHocOnline/
+                           — mỗi lần push, Pages build lại mất ~1–2 phút)
   index.html               HUD, màn tạo nhân vật, modal, bảng cài (#install), nút 💬 (#btnChat)
   style.css                token màu :root + dark mode; khối `body.touch` = bố cục cảm ứng; bottom sheet cài app
   js\game.js               vòng lặp, input (phím, cần điều khiển, chạm-để-đi, chụm 2 ngón), camera, va chạm +

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#2f5d8a">
+  <title>Trường Học Online</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏫</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="stage"></div>
+  <div id="labels"></div>
+
+  <!-- HUD -->
+  <div id="hud" hidden>
+    <div id="topLeft">
+      <div class="pill school"><span>🏫</span><b id="schoolName">Trường</b></div>
+      <div class="panel" id="info">
+        <div><span class="dot"></span><span id="npcCount">0</span> bạn trong trường</div>
+        <div>⏰ <b id="clock">06:00</b> · <span id="phaseName">Buổi sáng</span></div>
+        <div>📚 <span id="classInfo">Lớp 6A · Ngày 1</span></div>
+        <div>🎖 Hạnh kiểm: <b id="conduct">Tốt</b></div>
+        <div class="bars">
+          <span title="Năng lượng">⚡<i><em id="energyBar"></em></i></span>
+          <span title="Tâm trạng">😊<i><em id="moodBar"></em></i></span>
+        </div>
+        <div>💰 <span id="money">0</span>k · 📍 <span id="zoneName">—</span></div>
+        <div id="tagChips"></div>
+      </div>
+    </div>
+    <div id="topRight">
+      <button class="iconBtn" id="btnSubjects" title="Môn học">📚</button>
+      <button class="iconBtn" id="btnTags" title="Danh hiệu (tag)">🏷️</button>
+      <button class="iconBtn" id="btnSound" title="Âm thanh">🔊</button>
+      <button class="iconBtn" id="btnHelp" title="Hướng dẫn">❓</button>
+    </div>
+    <div id="objective"></div>
+    <div id="special"></div>
+    <div id="chat">
+      <div id="chatLog"></div>
+      <form id="chatForm" autocomplete="off">
+        <input id="chatInput" maxlength="80" placeholder="Nhắn gì đó… (Enter)">
+        <button>Gửi</button>
+      </form>
+    </div>
+    <button id="actBtn" hidden></button>
+    <div id="joy" hidden><div id="joyKnob"></div></div>
+  </div>
+
+  <!-- Start screen -->
+  <div id="start" class="screen">
+    <div class="card">
+      <h1>🏫 Trường Học Online</h1>
+      <p class="sub">Đi học mỗi ngày, học đủ 12 môn để lên lớp, từ lớp 6 đến lớp 9.</p>
+      <div id="continueBox" hidden>
+        <p id="continueInfo"></p>
+        <button class="primary" id="btnContinue">Tiếp tục đi học</button>
+        <button class="ghost" id="btnReset">Chơi lại từ đầu</button>
+        <hr>
+      </div>
+      <form id="newForm">
+        <label>Tên học sinh <input id="fName" maxlength="16" required placeholder="Ví dụ: Bé Na"></label>
+        <label>Trường (máy chủ)
+          <select id="fSchool">
+            <option>THCS Hoa Phượng</option>
+            <option>THCS Ánh Dương</option>
+            <option>THCS Sao Mai</option>
+            <option>THCS Bình Minh</option>
+          </select>
+        </label>
+        <div class="row">
+          <label class="radio"><input type="radio" name="fGender" value="boy" checked> Nam</label>
+          <label class="radio"><input type="radio" name="fGender" value="girl"> Nữ</label>
+        </div>
+        <button class="primary">Nhập học lớp 6</button>
+      </form>
+      <p class="note">Bản thử nghiệm · Chơi một mình với bạn học NPC · Lưu tiến độ trên máy này.</p>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="modal" class="screen" hidden>
+    <div class="card">
+      <h2 id="mTitle"></h2>
+      <div id="mBody"></div>
+      <div id="mButtons"></div>
+    </div>
+  </div>
+
+  <div id="toast" hidden></div>
+  <div id="fade"></div>
+
+  <script type="module" src="js/game.js"></script>
+</body>
+</html>

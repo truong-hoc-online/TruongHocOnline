@@ -40,3 +40,4 @@ Trước khi đổi một điều dưới đây, hỏi người dùng: đa số 
 | Góp ý gửi vào **Supabase** (bảng `feedback`), hàng chờ trên máy khi offline — thay Google Form | Người dùng chọn Supabase cho "hộp thư góp ý + duyệt mod"; không cần tài khoản Google, xem được trong trang quản trị |
 | Trang quản trị: Next.js theo mẫu `E:\GitHub\durian-operadmin` (chỉ tham khảo, không sửa repo đó), host cho phép thương mại | Người dùng quen bộ công cụ này |
 | Quy tắc cho Claude tách vào `.claude/rules/` (mỗi file một chủ đề; PWA / mod-kinh tế / kiểm thử nạp theo `paths`) | Người dùng yêu cầu; CLAUDE.md một file quá dài (>200 dòng) |
+| **CLAUDE.md = bản đồ dự án + nhật ký tiến độ** (trạng thái, việc tiếp theo, quyết định của phiên, nhật ký), luôn cập nhật cuối phiên; rules giữ quy tắc theo chủ đề | Người dùng yêu cầu rõ; trạng thái/nhật ký chỉ ở một nơi để không lệch nhau |

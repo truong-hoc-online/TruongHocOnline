@@ -7,5 +7,7 @@
   khoảng 1–2 phút.
 - Máy có: Python 3.14 (`C:\Python314`), Node 24, Edge (`C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`).
 - PowerShell 5: `Set-Content -Encoding utf8` thêm BOM. Ghi file bằng tool Write/Edit hoặc Node, không dùng Set-Content.
-- Cuối mỗi phiên: cập nhật `.claude/rules/status-roadmap.md` (trạng thái, việc tiếp theo), `decisions.md` (nếu có
-  quyết định mới) và thêm một mục vào đầu `.claude/rules/session-log.md`.
+- **Cuối mỗi phiên, cập nhật `CLAUDE.md`** (bản đồ dự án + nhật ký tiến độ, người dùng yêu cầu luôn cập nhật):
+  bảng Trạng thái (kèm commit), Việc tiếp theo cho phiên sau, Quyết định quan trọng của phiên (kèm lý do), và một mục
+  mới ở đầu Nhật ký phiên. Quyết định mới cũng thêm vào `.claude/rules/decisions.md` (danh sách đầy đủ). Rules nào có
+  thông tin thay đổi (bản đồ file, lối chơi, hạ tầng…) thì sửa đúng file đó.

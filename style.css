@@ -137,14 +137,71 @@ button { font: inherit; cursor: pointer; }
 #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity .35s; z-index: 15; }
 #fade.on { opacity: 1; }
 
-@media (max-width: 640px) {
-  #topLeft { max-width: 200px; }
-  .panel { font-size: 12px; padding: 6px 9px; }
-  .bars i { width: 44px; }
-  #objective { top: auto; bottom: 230px; left: 50%; max-width: 92vw; font-size: 13px; }
-  #chatLog { max-height: 110px; }
-  #chat { width: calc(100vw - 150px); }
-  .iconBtn { width: 36px; height: 36px; font-size: 16px; }
-  #topRight { flex-direction: column; }
-  #special { top: auto; bottom: 240px; }
+html, body { overscroll-behavior: none; -webkit-user-select: none; user-select: none; }
+input, select { font-size: 16px !important; -webkit-user-select: text; user-select: text; } /* ≥16px: iOS won't zoom on focus */
+#btnChat { display: none; }
+#moveMark { display: none; }
+
+/* ---------- touch devices (phones, tablets): mobile-first layout ---------- */
+body.touch #btnChat { display: block; }
+body.touch #topLeft { left: max(8px, env(safe-area-inset-left)); max-width: 210px; }
+body.touch .pill.school { font-size: 14px; padding: 5px 11px; }
+body.touch .panel { font-size: 12px; padding: 6px 9px; line-height: 1.5; }
+body.touch .panel.compact .more { display: none; }
+body.touch .bars i { width: 46px; }
+body.touch #topRight { right: max(8px, env(safe-area-inset-right)); flex-direction: column; gap: 6px; }
+body.touch .iconBtn { width: 40px; height: 40px; font-size: 18px; }
+body.touch #special { right: calc(max(8px, env(safe-area-inset-right)) + 48px); top: max(10px, env(safe-area-inset-top)); }
+
+/* joystick bottom-left, action button bottom-right (thumb zones) */
+body.touch #joy { left: max(18px, env(safe-area-inset-left)); right: auto; bottom: calc(env(safe-area-inset-bottom) + 22px); width: 128px; height: 128px; }
+body.touch #joyKnob { left: 37px; top: 37px; }
+body.touch #actBtn { right: max(14px, env(safe-area-inset-right)); bottom: calc(env(safe-area-inset-bottom) + 40px); padding: 18px 20px; font-size: 17px; max-width: 46vw; }
+body.touch #objective { top: auto; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 160px); max-width: 92vw; font-size: 13px; }
+body.touch #chat { left: max(10px, env(safe-area-inset-left)); bottom: calc(env(safe-area-inset-bottom) + 200px); width: min(300px, 68vw); }
+body.touch #chatLog { max-height: 88px; margin: 0; }
+body.touch #chatLog div { font-size: 12px; padding: 2px 8px; }
+body.touch #chatForm { display: none; }
+body.touch.chatting #chatForm {
+  display: flex; position: fixed; left: 10px; right: 10px; bottom: calc(env(safe-area-inset-bottom) + 10px);
+  background: var(--panel); padding: 8px; border-radius: 14px; z-index: 5;
 }
+body.touch.chatting #joy, body.touch.chatting #actBtn { display: none; }
+body.touch #moveMark { display: block; }
+
+@media (orientation: landscape) and (max-height: 500px) {
+  body.touch #objective { bottom: auto; top: max(10px, env(safe-area-inset-top)); max-width: 40vw; }
+  body.touch #chat { bottom: calc(env(safe-area-inset-bottom) + 160px); }
+  body.touch .panel .more { display: none; }
+}
+
+/* ---------- install bottom sheet ---------- */
+.sheetWrap { position: fixed; inset: 0; z-index: 30; background: rgba(10, 20, 30, .45); display: flex; align-items: flex-end; justify-content: center; }
+.sheetWrap[hidden] { display: none; }
+.sheet {
+  background: var(--card); color: var(--ink); width: min(480px, 100%); max-height: 92vh; overflow: auto;
+  border-radius: 28px 28px 0 0; padding: 10px 22px calc(env(safe-area-inset-bottom) + 16px);
+  animation: up .28s ease-out;
+}
+@keyframes up { from { transform: translateY(40px); opacity: 0; } }
+.grab { width: 44px; height: 5px; border-radius: 3px; background: #c9d1d9; margin: 0 auto 8px; }
+.sheetHead { display: flex; align-items: center; justify-content: space-between; }
+.sheetHead h2 { margin: 6px 0; font-size: 24px; font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: .3px; }
+.sheet .x { border: 0; background: none; font-size: 22px; color: var(--ink); padding: 6px; }
+.steps { list-style: none; padding: 0; margin: 10px 0; display: flex; flex-direction: column; gap: 16px; }
+.steps li { display: flex; gap: 12px; align-items: flex-start; }
+.steps .num { flex: 0 0 34px; height: 34px; border-radius: 50%; background: #2563eb; color: #fff; font-weight: 900; font-style: italic; display: grid; place-items: center; font-size: 17px; }
+.steps li > div > b { font-weight: 600; font-size: 16px; display: block; line-height: 1.35; }
+.steps small { display: block; color: var(--muted); margin-top: 6px; font-size: 13px; }
+.steps svg { vertical-align: middle; }
+.keycap { display: inline-block; font-weight: 900; letter-spacing: 1px; }
+.mockbar { margin-top: 8px; display: flex; align-items: center; gap: 8px; background: #eef1f4; border-radius: 16px; padding: 7px 8px; color: #555; }
+.mockbar .back { font-size: 22px; padding: 0 4px; }
+.mockbar .url { flex: 1; background: #fff; border-radius: 12px; padding: 6px; text-align: center; font-size: 14px; }
+.mockbar .dots { width: 38px; height: 38px; border-radius: 50%; border: 3px solid #2563eb; display: grid; place-items: center; font-weight: 900; color: #222; }
+.iconbox { margin-top: 8px; width: 50px; height: 50px; border: 3px solid #2563eb; border-radius: 14px; display: grid; place-items: center; }
+.row-mock { margin-top: 8px; display: flex; justify-content: space-between; align-items: center; border: 3px solid #2563eb; border-radius: 16px; padding: 12px 14px; font-size: 16px; }
+.sheet .info { background: #eef3ff; color: #1d2733; border-radius: 14px; padding: 12px 14px; font-size: 14px; }
+.sheet .warn { background: #fff4e0; color: #5a3b00; border-radius: 14px; padding: 12px 14px; font-size: 14px; }
+.sheet button.primary { display: block; width: 100%; border: 0; border-radius: 30px; padding: 15px; background: #2563eb; color: #fff; font-size: 17px; font-weight: 700; margin-top: 8px; }
+.sheet button.link { display: block; width: 100%; border: 0; background: none; color: var(--muted); font-size: 16px; padding: 14px; font-weight: 600; }

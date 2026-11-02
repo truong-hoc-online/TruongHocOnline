@@ -11,6 +11,17 @@ Không mở trực tiếp file `index.html`, vì ES module cần chạy qua http
 Điều khiển: W A S D / mũi tên · E hoặc Space để tương tác · Enter để chat · lăn chuột để zoom.
 Điện thoại: cần điều khiển trên màn hình + nút vàng.
 
+## Chơi trên điện thoại (chính)
+
+Game là PWA: mở link bằng Safari (iPhone) hoặc Chrome (Android), một bảng hướng dẫn **"Cài trên iPhone / Android"**
+sẽ hiện ra. Cài xong thì mở từ biểu tượng **Trường Học**: toàn màn hình, chơi được khi không có mạng.
+Trên iPhone, tiến độ trong Safari **không** chuyển sang app đã cài, nên cài trước rồi mới tạo nhân vật.
+
+Cài app cần **HTTPS**, nên phải đưa lên host (ví dụ GitHub Pages). `chay.bat` chỉ để thử trên máy tính.
+
+Cảm ứng: cần điều khiển (trái dưới) hoặc chạm xuống đất để đi · nút vàng (phải dưới) để tương tác ·
+💬 để chat · chụm/mở 2 ngón để zoom · chạm tên trường để thu gọn bảng thông tin.
+
 ## Lối chơi
 
 **Server = tên trường** (THCS Hoa Phượng, Ánh Dương…). **Một ngày có 4 giai đoạn:**

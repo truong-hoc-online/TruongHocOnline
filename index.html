@@ -6,6 +6,12 @@
   <meta name="theme-color" content="#2f5d8a">
   <title>Trường Học Online</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏫</text></svg>">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Trường Học">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -17,7 +23,7 @@
     <div id="topLeft">
       <div class="pill school"><span>🏫</span><b id="schoolName">Trường</b></div>
       <div class="panel" id="info">
-        <div><span class="dot"></span><span id="npcCount">0</span> bạn trong trường</div>
+        <div class="more"><span class="dot"></span><span id="npcCount">0</span> bạn trong trường</div>
         <div>⏰ <b id="clock">06:00</b> · <span id="phaseName">Buổi sáng</span></div>
         <div>📚 <span id="classInfo">Lớp 6A · Ngày 1</span></div>
         <div>🎖 Hạnh kiểm: <b id="conduct">Tốt</b></div>
@@ -25,11 +31,12 @@
           <span title="Năng lượng">⚡<i><em id="energyBar"></em></i></span>
           <span title="Tâm trạng">😊<i><em id="moodBar"></em></i></span>
         </div>
-        <div>💰 <span id="money">0</span>k · 📍 <span id="zoneName">—</span></div>
-        <div id="tagChips"></div>
+        <div class="more">💰 <span id="money">0</span>k · 📍 <span id="zoneName">—</span></div>
+        <div id="tagChips" class="more"></div>
       </div>
     </div>
     <div id="topRight">
+      <button class="iconBtn" id="btnChat" title="Chat">💬</button>
       <button class="iconBtn" id="btnSubjects" title="Môn học">📚</button>
       <button class="iconBtn" id="btnTags" title="Danh hiệu (tag)">🏷️</button>
       <button class="iconBtn" id="btnSound" title="Âm thanh">🔊</button>
@@ -44,8 +51,7 @@
         <button>Gửi</button>
       </form>
     </div>
-    <button id="actBtn" hidden></button>
-    <div id="joy" hidden><div id="joyKnob"></div></div>
+    <button id="actBtn" hidden></button>    <div id="joy" hidden><div id="joyKnob"></div></div>
   </div>
 
   <!-- Start screen -->
@@ -75,7 +81,22 @@
         </div>
         <button class="primary">Nhập học lớp 6</button>
       </form>
+      <button class="ghost" id="btnInstall" hidden>📲 Cài lên màn hình chính</button>
       <p class="note">Bản thử nghiệm · Chơi một mình với bạn học NPC · Lưu tiến độ trên máy này.</p>
+    </div>
+  </div>
+
+  <!-- Install guide (bottom sheet) -->
+  <div id="install" class="sheetWrap" hidden>
+    <div class="sheet">
+      <div class="grab"></div>
+      <div class="sheetHead">
+        <h2 id="installTitle">Cài trên iPhone</h2>
+        <button id="installClose" class="x" aria-label="Đóng">✕</button>
+      </div>
+      <div id="installBody"></div>
+      <button class="primary" id="installDone">Tôi đã cài xong</button>
+      <button class="link" id="installLater">Để sau</button>
     </div>
   </div>
 

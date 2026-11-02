@@ -144,6 +144,13 @@ function tone(freq, start, dur, type = 'sine', vol = 0.15) {
   o.start(t);
   o.stop(t + dur + 0.05);
 }
+// iOS only allows audio after a user gesture: call this from the first touch/click.
+export function unlockAudio() {
+  try {
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    if (ac.state === 'suspended') ac.resume();
+  } catch { /* ignore */ }
+}
 export function sfx(kind) {
   try {
     if (kind === 'bell') [0, 0.35, 0.7, 1.05, 1.4, 1.75].forEach((s, i) => tone(i % 2 ? 660 : 880, s, 0.3, 'triangle', 0.12));

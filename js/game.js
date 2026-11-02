@@ -4,7 +4,12 @@ import { buildWorld } from './world.js';
 import { makeCharacter, animateCharacter, faceTowards, SKINS, HAIRS } from './chars.js';
 import { Npcs } from './npc.js';
 import { SUBJECTS, POINTS_TO_PASS, makeQuestion } from './subjects.js';
-import { $, ui, ask, runQuiz, toast, chatLine, sys, makeLabel, say, setLabelTag, fade, sfx, esc } from './ui.js';
+import { $, ui, ask, runQuiz, toast, chatLine, sys, makeLabel, say, setLabelTag, fade, sfx, esc, unlockAudio } from './ui.js';
+import { initInstall } from './install.js';
+
+const TOUCH = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+if (TOUCH) document.body.classList.add('touch');
+initInstall();
 
 const SAVE_KEY = 'truong-hoc-online-v1';
 
@@ -81,7 +86,7 @@ const subj = (id) => SUBJECTS.find((s) => s.id === id);
 
 // ---------------- three.js setup ----------------
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, TOUCH ? 1.5 : 2)); // phones: fewer pixels = smoother, cooler
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 $('stage').appendChild(renderer.domElement);
@@ -95,7 +100,7 @@ const hemi = new THREE.HemisphereLight(0xffffff, 0x8aa070, 1.6);
 scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff4e0, 2.2);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.mapSize.set(TOUCH ? 1024 : 2048, TOUCH ? 1024 : 2048);
 Object.assign(sun.shadow.camera, { left: -28, right: 28, top: 28, bottom: -28, near: 1, far: 90 });
 sun.shadow.bias = -0.0005;
 scene.add(sun, sun.target);
@@ -138,7 +143,61 @@ addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
 addEventListener('blur', () => keys.clear());
 renderer.domElement.addEventListener('wheel', (e) => { camDist = clamp(camDist + Math.sign(e.deltaY) * 1.5, 8, 30); }, { passive: true });
 
-if (matchMedia('(pointer: coarse)').matches) $('joy').hidden = false;
+if (TOUCH) $('joy').hidden = false;
+addEventListener('pointerdown', unlockAudio, { once: true });
+
+// ---- touch on the 3D view: tap ground = walk there, two fingers = zoom ----
+const canvas = renderer.domElement;
+const touches = new Map();
+let pinchD0 = 0, pinchCam0 = 0, tapStart = null;
+let moveTarget = null;
+const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+const raycaster = new THREE.Raycaster();
+const moveMark = new THREE.Mesh(new THREE.RingGeometry(0.25, 0.4, 24), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 }));
+moveMark.rotation.x = -Math.PI / 2;
+moveMark.visible = false;
+scene.add(moveMark);
+const pinchDist = () => { const [a, b] = [...touches.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+canvas.addEventListener('pointerdown', (e) => {
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (touches.size === 2) { pinchD0 = pinchDist(); pinchCam0 = camDist; tapStart = null; }
+  else if (touches.size === 1) tapStart = { x: e.clientX, y: e.clientY, t: performance.now() };
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (!touches.has(e.pointerId)) return;
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (touches.size === 2 && pinchD0 > 0) camDist = clamp(pinchCam0 * (pinchD0 / pinchDist()), 8, 32);
+});
+const endTouch = (e) => {
+  touches.delete(e.pointerId);
+  if (touches.size < 2) pinchD0 = 0;
+  if (!tapStart || e.type === 'pointercancel') return;
+  const moved = Math.hypot(e.clientX - tapStart.x, e.clientY - tapStart.y);
+  if (moved < 12 && performance.now() - tapStart.t < 350) tapToMove(e.clientX, e.clientY);
+  tapStart = null;
+};
+canvas.addEventListener('pointerup', endTouch);
+canvas.addEventListener('pointercancel', endTouch);
+function tapToMove(cx, cy) {
+  if (!state || !player || ui.modalOpen || busy || sitting) return;
+  raycaster.setFromCamera({ x: (cx / innerWidth) * 2 - 1, y: -(cy / innerHeight) * 2 + 1 }, camera);
+  const hit = new THREE.Vector3();
+  if (!raycaster.ray.intersectPlane(groundPlane, hit)) return;
+  moveTarget = { x: hit.x, z: hit.z, stuck: 0 };
+  moveMark.position.set(hit.x, 0.05, hit.z);
+  moveMark.visible = true;
+}
+function clearMoveTarget() { moveTarget = null; moveMark.visible = false; }
+
+// chat button (touch): opens the input above the keyboard
+$('btnChat').onclick = () => {
+  document.body.classList.add('chatting');
+  $('chatInput').focus();
+};
+$('chatInput').addEventListener('blur', () => setTimeout(() => document.body.classList.remove('chatting'), 150));
+// tap the school pill to fold the info panel
+document.querySelector('.pill.school').addEventListener('click', () => $('info').classList.toggle('compact'));
+if (TOUCH && innerHeight < 700) $('info').classList.add('compact');
 const joyEl = $('joy'), knob = $('joyKnob');
 joyEl.addEventListener('pointerdown', (e) => { joy.id = e.pointerId; joyEl.setPointerCapture(e.pointerId); moveJoy(e); });
 joyEl.addEventListener('pointermove', (e) => { if (e.pointerId === joy.id) moveJoy(e); });
@@ -212,6 +271,7 @@ function refreshMyTag() {
 function placePlayer(x, z, rotY = Math.PI) {
   player.position.set(x, 0, z);
   player.rotation.y = rotY;
+  clearMoveTarget();
   camPos.set(x, camDist * 0.85, z + camDist * 0.75);
 }
 function setScarf(on) { player.userData.scarf.visible = on; }
@@ -917,7 +977,10 @@ $('btnTags').onclick = () => {
 $('btnSound').onclick = () => { ui.soundOn = !ui.soundOn; $('btnSound').textContent = ui.soundOn ? '🔊' : '🔇'; };
 $('btnHelp').onclick = () => { if (!ui.modalOpen) showHelp(); };
 function showHelp() {
-  return ask('❓ Cách chơi', `<p><b>Di chuyển:</b> W A S D / phím mũi tên (điện thoại: cần điều khiển). <b>Tương tác:</b> phím E / Space hoặc nút vàng. <b>Chat:</b> Enter. Lăn chuột để phóng to/thu nhỏ.</p>
+  const controls = TOUCH
+    ? '<b>Di chuyển:</b> kéo cần điều khiển (góc trái dưới), hoặc <b>chạm xuống đất</b> để đi tới đó. <b>Tương tác:</b> nút vàng (góc phải dưới). <b>Chat:</b> nút 💬. <b>Zoom:</b> chụm/mở hai ngón. Chạm tên trường để thu gọn bảng thông tin.'
+    : '<b>Di chuyển:</b> W A S D / phím mũi tên. <b>Tương tác:</b> phím E / Space hoặc nút vàng. <b>Chat:</b> Enter. Lăn chuột để phóng to/thu nhỏ.';
+  return ask('❓ Cách chơi', `<p>${controls}</p>
     <p><b>Một ngày có 4 giai đoạn:</b><br>
     🌅 <b>Chuẩn bị đến trường</b> — ăn sáng, mặc đồng phục, khăn quàng đỏ, soạn cặp, mang đồ ăn. Ra cửa trước 6:45 để không trễ.<br>
     🏫 <b>Tại trường</b> — 4 tiết học (trả lời câu hỏi để lấy điểm môn), giữa giờ có ra chơi. Nghe chuông thì vào lớp.<br>
@@ -980,7 +1043,13 @@ function tick(t) {
     mx += joy.x;
     mz += joy.z;
   }
-  const len = Math.hypot(mx, mz);
+  let len = Math.hypot(mx, mz);
+  if (len > 0.1) clearMoveTarget(); // manual control wins over tap-to-move
+  else if (moveTarget && !paused && !sitting && !busy) {
+    const dx = moveTarget.x - player.position.x, dz = moveTarget.z - player.position.z, d = Math.hypot(dx, dz);
+    if (d < 0.3) clearMoveTarget();
+    else { mx = dx / d; mz = dz / d; len = 1; }
+  } else if (moveTarget && (sitting || busy)) clearMoveTarget();
   let moved = 0;
   if (len > 0.1) {
     const sp = (state.stats.energy < 20 ? 3 : 4.6) * Math.min(1, len) / len;
@@ -990,6 +1059,10 @@ function tick(t) {
     collide(player.position);
     moved = Math.hypot(player.position.x - ox, player.position.z - oz) / dt;
     faceTowards(player, mx, mz, dt);
+    if (moveTarget) { // blocked by a wall for a moment → give up
+      moveTarget.stuck = moved < sp * len * 0.3 ? moveTarget.stuck + dt : 0;
+      if (moveTarget.stuck > 0.4) clearMoveTarget();
+    }
   }
   animateCharacter(player, dt, moved);
 

@@ -21,9 +21,17 @@ E:\TruongHocOnline\        git riêng, nhánh main, chưa có remote
   js\subjects.js           12 môn, POINTS_TO_PASS=5, ngân hàng câu (đáp án ĐÚNG đặt ĐẦU, xáo khi hiện);
                            Toán + Anh sinh tự động theo lớp  ← CẦN giáo viên duyệt
   js\ui.js                 ask()/runQuiz()/chat/toast/nhãn/âm thanh WebAudio
+  js\install.js            hướng dẫn "Thêm vào MH chính" (iPhone Safari / iPhone Chrome / Android, nút cài 1 chạm
+                           nếu có beforeinstallprompt), tự hiện lần đầu trên điện thoại; đăng ký sw.js
   js\vendor\three.module.min.js   Three.js r160 (MIT)
+  sw.js                    cache offline — TĂNG `VERSION` mỗi lần sửa BẤT KỲ file nào (và thêm file mới vào FILES)
+  manifest.webmanifest, icon.svg, icons\*.png   PWA (PNG render từ icon.svg bằng Edge headless)
   chay.bat                 python http.server cổng 8081
 ```
+
+**Ưu tiên điện thoại** (người dùng: "chủ yếu trên mobile"). `body.touch` = máy cảm ứng: cần điều khiển trái dưới,
+nút hành động phải dưới, chạm đất để đi, chụm 2 ngón để zoom, chat qua nút 💬, pixelRatio ≤ 1.5, shadow 1024.
+iPhone: app đã cài **không dùng chung localStorage với Safari** → bảng cài hiện trước khi tạo nhân vật.
 
 Git: `C:\Users\adminpc01\AppData\Local\GitHubDesktop\app-3.6.7\resources\app\git\cmd\git.exe`. Mỗi lần chỉnh
 xong → commit. Người dùng tự push bằng GitHub Desktop.
@@ -42,7 +50,8 @@ xong → commit. Người dùng tự push bằng GitHub Desktop.
 | MVP một người chơi + NPC: 4 giai đoạn, 12 môn, lớp 6→9, tag + phòng riêng, cấm nói chuyện, bắt nạt (hướng hỗ trợ) | ✅ E2E qua |
 | Người dùng chơi thử | ⚠️ Chưa |
 | Giáo viên duyệt câu hỏi; nội dung địa phương theo tỉnh | ❌ |
-| Điện thoại thật | ❌ |
+| PWA + bảng cài + bố cục cảm ứng | ✅ E2E giả lập iPhone 390×844 (touch + UA Safari): bảng cài hiện, chạm-để-đi chạy, SW cache, hết 1 ngày không lỗi |
+| Điện thoại thật | ❌ Cần host HTTPS (GitHub Pages) — `localhost` trên PC không mở được từ điện thoại; SW/cài app cần HTTPS |
 | Multiplayer thật (server = tên trường, WebSocket, lọc chat, báo cáo) | ❌ Để sau (người dùng chọn NPC trước) |
 | Vai cô giáo chơi được | ❌ Chờ multiplayer |
 

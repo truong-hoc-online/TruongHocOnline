@@ -49,6 +49,24 @@ nếu đã quá 6 tiếng thì coi như đã tan trường và về nhà.
 Mỗi môn cần 5 điểm (mỗi câu đúng 1 điểm). Xong lớp A4 (đủ 12 môn) và hạnh kiểm từ Trung bình thì lên khối trên
 (6A4 → 7A1 …). Câu hỏi khó dần theo lớp.
 
+**Coco 🥥 và cửa hàng:** kiếm coco khi trả lời đúng (+1/câu), học xong môn (+5), một buổi ngoan (+5), tối đa
+40 coco/ngày. Tiêu vào:
+- đồ ăn sáng ở bàn ăn: cơm trắng miễn phí; hủ tiếu, cơm sườn, phở… thêm năng lượng và tâm trạng;
+- căng tin ở trường;
+- 🛒 cửa hàng online ở bàn học: đồng phục dự phòng (khỏi chờ giặt), phụ kiện (mũ, nơ, kính, băng đô), đồ chơi.
+
+Bản này **chưa bán coco bằng tiền thật**.
+
+**Đồ chơi chọc bạn:** bỏ vào cặp ở nhà (tối đa 2 loại). Lúc ra chơi, lại gần bạn để xịt nước, dính kẹo, phun trân
+châu, bắn pháo giấy. Không dùng được trong lớp, thư viện, với thầy cô. Thầy cô hoặc sao đỏ bắt gặp thì bị tịch thu
+và trừ hạnh kiểm; chọc mãi một bạn thì bạn ấy mách cô, vì như vậy là bắt nạt.
+
+**Hộp thư góp ý 📮:** nút trên màn hình hoặc hộp thư cạnh cổng trường. Báo câu hỏi sai, chỗ bị kẹt, lỗi game; game
+tự gửi kèm lớp, vị trí và câu hỏi vừa gặp. Chưa có máy chủ thì góp ý được giữ trên máy, chờ gửi.
+
+**Mod:** đồ ăn, đồng phục, phụ kiện, đồ chơi đều là file dữ liệu trong `mods/`. Cộng đồng có thể làm thêm; xem
+[MODDING.md](MODDING.md).
+
 **Khu vực không được nói chuyện:** lớp học, thư viện. Học sinh cá biệt thì "dám" nói, nhưng có thể bị nhắc.
 
 **Danh hiệu (tag) và khu vực riêng:**
@@ -57,7 +75,7 @@ Mỗi môn cần 5 điểm (mỗi câu đúng 1 điểm). Xong lớp A4 (đủ 1
 |---|---|---|
 | 🌟 Học sinh giỏi | Đúng từ 80% (≥ 15 câu), hạnh kiểm từ 80 | Phòng học sinh giỏi: thử thách nhân đôi điểm |
 | 🎗️ Lớp trưởng | Từ ngày 3, hạnh kiểm từ 85, đúng từ 60% | Phòng Đội (họp cán sự, sổ đầu bài), nút "Giữ trật tự" |
-| 😎 Cá biệt | Hạnh kiểm dưới 60 / vào lớp muộn 3 lần / lêu lổng 4 lần | Nói chuyện trong lớp và thư viện, Góc sau căng tin. Hạnh kiểm lên 75 thì hết |
+| 😎 Cá biệt | Hạnh kiểm dưới 60 / vào lớp muộn 3 lần / lêu lổng 4 lần / chọc bạn 6 lần | Nói chuyện trong lớp và thư viện, Góc sau căng tin. Hạnh kiểm lên 75 thì hết |
 | 🛡️ Bị bắt nạt | Gặp sự kiện bị bắt nạt lúc ra chơi | Nút "Báo cô", thầy giám thị bảo vệ, cô Thu ở Phòng tư vấn. Kèm số 111 ngoài đời |
 | 👩‍🏫 Cô giáo | Chưa có (dành cho bản nhiều người chơi) | Phòng giáo viên |
 

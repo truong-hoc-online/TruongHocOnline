@@ -1,0 +1,39 @@
+{
+  "id": "base",
+  "name": "Đồ gốc của game",
+  "author": "Trường Học Online",
+  "version": 1,
+  "items": [
+    { "id": "com-trang", "type": "food", "where": "home", "name": "Cơm trắng", "icon": "🍚", "price": 0, "energy": 15, "desc": "Mẹ nấu, miễn phí." },
+    { "id": "banh-mi-op-la", "type": "food", "where": "home", "name": "Bánh mì ốp la", "icon": "🍳", "price": 12, "energy": 25, "mood": 3 },
+    { "id": "xoi-ga", "type": "food", "where": "home", "name": "Xôi gà", "icon": "🍙", "price": 12, "energy": 28, "mood": 3 },
+    { "id": "hu-tieu", "type": "food", "where": "home", "name": "Hủ tiếu", "icon": "🍜", "price": 15, "energy": 30, "mood": 5 },
+    { "id": "com-suon", "type": "food", "where": "home", "name": "Cơm sườn", "icon": "🍛", "price": 20, "energy": 35, "mood": 8 },
+    { "id": "pho-bo", "type": "food", "where": "home", "name": "Phở bò", "icon": "🥣", "price": 20, "energy": 35, "mood": 8 },
+
+    { "id": "banh-mi", "type": "food", "where": "canteen", "name": "Bánh mì", "icon": "🥖", "price": 10, "energy": 25 },
+    { "id": "sua-dau-nanh", "type": "food", "where": "canteen", "name": "Sữa đậu nành", "icon": "🥛", "price": 5, "energy": 10 },
+    { "id": "banh-flan", "type": "food", "where": "canteen", "name": "Bánh flan", "icon": "🍮", "price": 8, "energy": 8, "mood": 6 },
+
+    { "id": "dong-phuc-du-phong", "type": "uniform", "name": "Đồng phục dự phòng", "icon": "👕", "price": 60, "count": 1,
+      "desc": "Thêm một bộ đồng phục sạch: áo dơ chưa kịp giặt vẫn có bộ khác để mặc. Lên lớp, chuyển lớp thì mẹ đổi sang màu mới." },
+
+    { "id": "mu-luoi-trai", "type": "accessory", "kind": "cap", "color": "#e53935", "name": "Mũ lưỡi trai đỏ", "icon": "🧢", "price": 35 },
+    { "id": "no-hong", "type": "accessory", "kind": "bow", "color": "#f06292", "name": "Nơ hồng", "icon": "🎀", "price": 30 },
+    { "id": "kinh-tron", "type": "accessory", "kind": "glasses", "color": "#37474f", "name": "Kính tròn", "icon": "👓", "price": 40 },
+    { "id": "bang-do-vang", "type": "accessory", "kind": "headband", "color": "#fbc02d", "name": "Băng đô vàng", "icon": "💛", "price": 25 },
+
+    { "id": "sung-nuoc", "type": "toy", "name": "Súng nước", "icon": "🔫", "price": 25, "uses": 5, "fun": 8, "catch": 0.5,
+      "verb": "Xịt nước", "fx": { "kind": "spray", "color": "#4fc3f7" },
+      "lines": ["Á! Ướt hết áo rồi!", "Đứng lại đó!!", "Lạnh quá trời ơi 😆"] },
+    { "id": "keo-cao-su", "type": "toy", "name": "Bã kẹo cao su", "icon": "🍬", "price": 10, "uses": 3, "fun": 6, "catch": 0.6,
+      "verb": "Dính kẹo", "fx": { "kind": "blob", "color": "#f48fb1" },
+      "lines": ["Ê! Dính vô cặp tui rồi!", "Gỡ không ra nè 😫", "Ai chơi kỳ vậy!"] },
+    { "id": "tra-sua-tran-chau", "type": "toy", "name": "Ly trà sữa còn trân châu", "icon": "🧋", "price": 20, "uses": 3, "fun": 10, "catch": 0.45,
+      "verb": "Phun trân châu", "fx": { "kind": "spray", "color": "#3e2723" },
+      "lines": ["Trân châu bay đầy đầu tui!", "Haha, vừa ăn vừa phun hả?", "Trả lại ly trà sữa đây!"] },
+    { "id": "phao-giay", "type": "toy", "name": "Pháo giấy", "icon": "🎉", "price": 15, "uses": 3, "fun": 7, "catch": 0.3,
+      "verb": "Bắn pháo giấy", "fx": { "kind": "confetti", "color": "#ffd54f" },
+      "lines": ["Giật cả mình!", "Đẹp ghê, mà dọn ai lo đây?", "Hôm nay sinh nhật ai hả?"] }
+  ]
+}

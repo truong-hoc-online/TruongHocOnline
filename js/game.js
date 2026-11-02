@@ -6,6 +6,10 @@ import { Npcs } from './npc.js';
 import { SUBJECTS, POINTS_TO_PASS, CLASS_GROUPS, classGroup, makeQuestion } from './subjects.js';
 import { $, ui, ask, runQuiz, toast, chatLine, sys, makeLabel, say, setLabelTag, fade, sfx, esc, unlockAudio } from './ui.js';
 import { initInstall } from './install.js';
+import { loadCatalog } from './items.js';
+import * as eco from './economy.js';
+import { openFeedback, flushOutbox } from './feedback.js';
+import { GAME_VERSION } from './config.js';
 
 const TOUCH = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
 if (TOUCH) document.body.classList.add('touch');
@@ -16,7 +20,7 @@ const SAVE_KEY = 'truong-hoc-online-v1'; // storage key kept; the save format ve
 export const TAGS = {
   'gioi': { name: 'Học sinh giỏi', icon: '🌟', how: 'Trả lời đúng từ 80% (ít nhất 15 câu) và hạnh kiểm từ 80.', perk: 'Vào Phòng học sinh giỏi: mỗi ngày một thử thách, đúng được nhân đôi điểm.' },
   'lop-truong': { name: 'Lớp trưởng', icon: '🎗️', how: 'Từ ngày thứ 3, hạnh kiểm từ 85, đúng từ 60%, không cá biệt.', perk: 'Vào Phòng Đội (họp cán sự), nút “Giữ trật tự” cho cả lớp.' },
-  'ca-biet': { name: 'Học sinh cá biệt', icon: '😎', how: 'Hạnh kiểm dưới 60, hoặc vào lớp muộn 3 lần, hoặc lêu lổng 4 lần.', perk: 'Dám nói chuyện trong lớp và thư viện, vào Góc sau căng tin. Hạnh kiểm lên 75 thì hết.' },
+  'ca-biet': { name: 'Học sinh cá biệt', icon: '😎', how: 'Hạnh kiểm dưới 60, hoặc vào lớp muộn 3 lần, lêu lổng 4 lần, chọc phá bạn 6 lần.', perk: 'Dám nói chuyện trong lớp và thư viện, vào Góc sau căng tin. Hạnh kiểm lên 75 thì hết.' },
   'bi-bat-nat': { name: 'Đang bị bắt nạt', icon: '🛡️', how: 'Gặp chuyện bị bắt nạt ở trường.', perk: 'Nút “Báo cô” luôn hiện, thầy giám thị để ý bảo vệ, cô Thu ở Phòng tư vấn lắng nghe.' },
   'co-giao': { name: 'Cô giáo', icon: '👩‍🏫', how: 'Vai giáo viên — sẽ mở ở bản nhiều người chơi.', perk: 'Vào Phòng giáo viên.' },
 };
@@ -31,6 +35,10 @@ const BREAK_AFTER = new Set([1, 3]); // break after the 2nd and 4th period
 const PRE_BELL_SECONDS = 30;
 const DIRTY_PENALTY = 3;
 const CASUAL_SHIRT = 0xffd180;      // home clothes
+const MAX_PACKED_TOYS = 2;          // toy kinds you can bring to school
+const PRANK_RANGE = 1.8;            // metres to a classmate
+const PRANK_WATCH = 9;              // staff closer than this may catch a prank
+const PRANKS_FOR_CA_BIET = 6;
 const BREAK_SECONDS = 75;
 const CLASS_LATE_SECONDS = 25;
 const CLASS_SKIP_SECONDS = 60;
@@ -56,14 +64,15 @@ let camDist = 16; // camera distance (declared early: resize() uses it)
 
 function newState(name, school, girl) {
   return {
-    v: 2, name, school,
+    v: 3, name, school,
     look: { girl, skin: pick(SKINS), hair: pick(HAIRS) },
     grade: 6, section: 1, day: 1, phase: 'home', clock: 360,
     progress: Object.fromEntries(SUBJECTS.map((s) => [s.id, 0])),
-    stats: { conduct: 80, energy: 80, mood: 70, money: 20 },
-    answered: 0, correct: 0, lateCount: 0, loiterCount: 0,
+    stats: { conduct: 80, energy: 80, mood: 70 },
+    coco: 20, ledger: [], inv: {}, acc: null, // coco wallet (economy.js), items owned, worn accessory
+    answered: 0, correct: 0, lateCount: 0, loiterCount: 0, prankCount: 0,
     tags: [], counselSinceTag: 0, graduated: false,
-    uniform: { state: 'clean', until: 0 }, // clean | dirty | washing (until = real ms timestamp)
+    uniform: { clean: 1, dirty: 0, washing: 0, until: 0 }, // sets of the class uniform; until = real ms
     homeAt: Date.now(), sessionStart: 0, sessionEnd: 0,
     today: null,
   };
@@ -76,6 +85,7 @@ function newToday() {
     bullyDone: false, challenge: false, meeting: false, ordered: false, readBreak: false, playedBreak: false,
     libFree: false, reportedTeacher: false, skipped: 0, lateToClass: 0, caughtDirty: false,
     studied: false, napped: false, tv: false,
+    earned: 0, packed: [], pranks: 0, victims: {},
   };
 }
 // v1 (day of 4 phases, evening at home) → v2 (6-hour real-time sessions, classes A1–A4)
@@ -91,7 +101,20 @@ function migrate(s) {
     delete s.prepared;
     delete s.rot;
   }
-  return s.v === 2 ? s : null;
+  // v2 → v3: coco wallet + inventory, uniform as a count of sets
+  if (s.v === 2) {
+    s.v = 3;
+    s.coco = Math.max(0, s.stats?.money ?? 20);
+    delete s.stats.money;
+    s.ledger = [];
+    s.inv = {};
+    s.acc = null;
+    s.prankCount = 0;
+    const u = s.uniform || {};
+    s.uniform = { clean: u.state === 'clean' ? 1 : 0, dirty: u.state === 'dirty' ? 1 : 0, washing: u.state === 'washing' ? 1 : 0, until: u.until || 0 };
+    if (s.today) Object.assign(s.today, { earned: 0, packed: [], pranks: 0, victims: {} });
+  }
+  return s.v === 3 ? s : null;
 }
 function firstOpenSection(progress) {
   const g = CLASS_GROUPS.find((c) => c.subjects.some((id) => (progress[id] ?? 0) < POINTS_TO_PASS));
@@ -103,7 +126,7 @@ addEventListener('visibilitychange', () => { if (document.hidden && state) save(
 
 const has = (tag) => state.tags.includes(tag);
 function addStat(k, d) {
-  state.stats[k] = k === 'money' ? Math.max(0, state.stats[k] + d) : clamp(state.stats[k] + d, 0, 100);
+  state.stats[k] = clamp(state.stats[k] + d, 0, 100);
 }
 function conductName(c) { return c >= 80 ? 'Tốt' : c >= 65 ? 'Khá' : c >= 50 ? 'Trung bình' : 'Yếu'; }
 const accuracy = () => (state.answered ? state.correct / state.answered : 0);
@@ -122,11 +145,22 @@ function timetable() {
   const pool = openSubjects();
   return Array.from({ length: PERIODS_PER_SESSION }, (_, i) => pool[i % pool.length]);
 }
-function uniformState() {
+// move finished washing to the clean pile; returns the uniform counts
+function laundry() {
   const u = state.uniform;
-  if (u.state === 'washing' && Date.now() >= u.until) { u.state = 'clean'; u.until = 0; }
-  return u.state;
+  if (u.washing && Date.now() >= u.until) { u.clean += u.washing; u.washing = 0; u.until = 0; }
+  return u;
 }
+
+// ---------------- items (mods/) ----------------
+let CATALOG = { packs: [], items: new Map(), errors: [] };
+const catalogReady = loadCatalog().then((c) => {
+  CATALOG = c;
+  if (c.errors.length) console.warn('[mods]', c.errors);
+});
+const item = (id) => CATALOG.items.get(id);
+const itemsOf = (type, where) => [...CATALOG.items.values()].filter((i) => i.type === type && (!where || i.where === where));
+const owned = (id) => (state.inv[id] ?? 0) > 0;
 function shirtColor() {
   const t = state.today;
   if (!t?.dressed) return CASUAL_SHIRT;
@@ -312,7 +346,9 @@ let sitting = false;
 function makePlayer() {
   let pos = null, rot = 0;
   if (player) { pos = player.position.clone(); rot = player.rotation.y; scene.remove(player); meLabel.el.remove(); }
-  player = makeCharacter({ girl: state.look.girl, skin: state.look.skin, hair: state.look.hair, scarf: !!state.today?.scarf, shirt: shirtColor() });
+  const acc = state.acc && item(state.acc);
+  player = makeCharacter({ girl: state.look.girl, skin: state.look.skin, hair: state.look.hair, scarf: !!state.today?.scarf, shirt: shirtColor(),
+    acc: acc ? { kind: acc.kind, color: acc.color } : null });
   if (pos) { player.position.copy(pos); player.rotation.y = rot; }
   scene.add(player);
   meLabel = makeLabel(state.name, 'me');
@@ -355,7 +391,7 @@ function enterHome() {
   sub = '';
   if (!state.homeAt) state.homeAt = Date.now();
   state.clock = 360 + Math.min(59, (Date.now() - state.homeAt) / 60000);
-  washNotified = uniformState() !== 'washing';
+  washNotified = !laundry().washing;
   npcs.showSchool(false);
   makePlayer();
   placePlayer(W.spots.homeSpawn.x - 4.5, -1.1, 0);
@@ -366,7 +402,8 @@ function enterHome() {
 
 function homeMissing() {
   const t = state.today, m = [];
-  if (!t.dressed) m.push(uniformState() === 'washing' ? 'đợi giặt đồ xong' : 'mặc đồng phục');
+  const u = laundry();
+  if (!t.dressed) m.push(!u.clean && !u.dirty && u.washing ? 'đợi giặt đồ xong' : 'mặc đồng phục');
   if (!t.scarf) m.push('đeo khăn quàng đỏ');
   if (!t.bag) m.push('soạn cặp');
   if (!t.breakfast) m.push('ăn sáng');
@@ -518,8 +555,9 @@ async function doPeriod(i) {
   state.answered += qs.filter((q) => !q.sleep).length;
   state.correct += c;
   award(s.id, c);
+  const got = eco.earn(state, c * eco.EARN.correct, 'trả lời đúng');
   addStat('energy', -7);
-  toast(`${s.icon} ${s.name}: đúng ${c}/3`);
+  toast(`${s.icon} ${s.name}: đúng ${c}/3${got ? ` · 🥥 +${got}` : ''}`);
   save();
 }
 
@@ -530,6 +568,7 @@ function award(id, pts) {
   if (before < POINTS_TO_PASS && state.progress[id] >= POINTS_TO_PASS) {
     sfx('up');
     sys(`🎉 Hoàn thành môn ${subj(id).name} lớp ${state.grade}!`);
+    eco.earn(state, eco.EARN.subjectDone, `xong môn ${id}`);
     toast(`🎉 Hoàn thành môn ${subj(id).name}!`, 3000);
     if (classGroup(state.section).subjects.every(isDone)) {
       sys(state.section < 4
@@ -607,18 +646,25 @@ function skipPeriod() {
   else startClass(t.done);
 }
 
+// new class colour: mum swaps every set (bought spares included) for clean ones of the new colour
+function newClassUniforms() {
+  const u = laundry();
+  state.uniform = { clean: Math.max(1, u.clean + u.dirty + u.washing), dirty: 0, washing: 0, until: 0 };
+}
+
 // Close the school session (when walking home, or on load after being away past the 6 hours).
 // Returns the summary to show once the player is home.
 function finishSession() {
   const t = state.today;
   addStat('energy', 40);
   addStat('mood', 4);
-  const clean = !t.skipped && !t.loiter && !t.lateToClass && t.dressed && t.scarf && !t.caughtDirty;
-  if (clean) addStat('conduct', 3);
-  if (t.dressed && uniformState() === 'clean') state.uniform.state = 'dirty'; // worn all day
+  const clean = !t.skipped && !t.loiter && !t.lateToClass && t.dressed && t.scarf && !t.caughtDirty && !t.caughtPrank;
+  if (clean) { addStat('conduct', 3); eco.earn(state, eco.EARN.cleanDay, 'buổi ngoan'); }
+  if (t.dressed) laundry().dirty++; // the set worn all day goes to the dirty pile
   const changes = evaluateTags();
   const lines = [
     `Điểm môn học: +${t.gained}`,
+    `🥥 Coco kiếm được: +${t.earned}${t.earned >= eco.EARN_CAP_PER_DAY ? ' (đã đạt tối đa mỗi ngày)' : ''} · đang có ${state.coco}`,
     `Hạnh kiểm: ${conductName(state.stats.conduct)} (${state.stats.conduct})`,
     `Tỉ lệ trả lời đúng: ${Math.round(accuracy() * 100)}%`,
   ];
@@ -628,9 +674,9 @@ function finishSession() {
   const g = classGroup(state.section);
   if (state.section < 4 && g.subjects.every(isDone)) {
     state.section++;
-    state.uniform = { state: 'clean', until: 0 }; // mum bought the new class's uniform
+    newClassUniforms();
     const ng = classGroup(state.section);
-    changes.push(`🎒 Chuyển sang Lớp ${cls()}: ${ng.subjects.map((id) => subj(id).name).join(', ')}. Mẹ đã mua đồng phục màu ${ng.colorName}.`);
+    changes.push(`🎒 Chuyển sang Lớp ${cls()}: ${ng.subjects.map((id) => subj(id).name).join(', ')}. Mẹ đã đổi ${state.uniform.clean} bộ đồng phục sang màu ${ng.colorName} (sạch).`);
   }
   const title = `🏠 Hết ngày ${state.day}`;
   state.day++;
@@ -673,8 +719,9 @@ function evaluateTags() {
       remove('ca-biet', '👏 Bạn đã tiến bộ, không còn là học sinh cá biệt!');
       state.lateCount = 0;
       state.loiterCount = 0;
+      state.prankCount = 0;
     }
-  } else if (s.conduct < 60 || state.lateCount >= 3 || state.loiterCount >= 4) {
+  } else if (s.conduct < 60 || state.lateCount >= 3 || state.loiterCount >= 4 || state.prankCount >= PRANKS_FOR_CA_BIET) {
     add('ca-biet', '😎 Bạn bị xếp vào nhóm Học sinh cá biệt. Góc sau căng tin đã mở… nhưng thầy cô để ý bạn hơn.');
   }
   if (!has('ca-biet') && state.day >= 3 && s.conduct >= 85 && acc >= 0.6) add('lop-truong', '🎗️ Cô chủ nhiệm chọn bạn làm Lớp trưởng! Phòng Đội đã mở.');
@@ -699,7 +746,7 @@ async function checkPromotion() {
   }
   state.grade++;
   state.section = 1;
-  state.uniform = { state: 'clean', until: 0 };
+  newClassUniforms();
   state.progress = Object.fromEntries(SUBJECTS.map((s) => [s.id, 0]));
   addStat('conduct', 5);
   await ask(`🎉 Lên lớp ${state.grade}!`, `<p>Bạn đã hoàn thành đủ 12 môn. Từ buổi sau bạn học <b>Lớp ${cls()}</b> (đồng phục màu ${classGroup(1).colorName}).</p><p class="meta">Câu hỏi sẽ khó hơn theo chương trình lớp ${state.grade}.</p>`, [{ label: 'Lên lớp thôi!', value: 1 }]);
@@ -730,8 +777,7 @@ async function bullyEvent() {
     npcs.goTo(npcs.monitor, player.position.x + 0.8, player.position.z + 1);
     say(npcs.monitor.label, 'Có thầy đây! Hai em kia về lớp ngay!');
   } else if (choice === 'pay') {
-    const lost = Math.min(10, state.stats.money);
-    addStat('money', -lost);
+    eco.lose(state, 10, 'bị bắt nạt lấy tiền');
     addStat('mood', -15);
     say(a.label, 'Ngoan đấy, mai nhớ mang tiếp nhé.');
   } else {
@@ -767,9 +813,15 @@ function actionFor(id) {
   const freeTime = (p === 'school' && (sub === 'break' || sub === 'preBell' || sub === 'free')) || p === 'after';
   switch (id) {
     case 'home-table': return homeOnly('🍚 Bàn ăn', homeTable);
-    case 'home-wardrobe': return homeOnly(uniformState() === 'washing' ? `🧺 Máy giặt (${mmss(state.uniform.until - Date.now())})` : '👕 Tủ quần áo', wardrobe);
-    case 'home-bag':
-      return p === 'home' && !t.bag ? { label: '🎒 Soạn cặp', run: async () => { t.bag = true; toast('🎒 Đã soạn cặp'); } } : null;
+    case 'home-wardrobe': {
+      const u = laundry();
+      return homeOnly(`👕 Tủ quần áo${u.washing ? ` · 🧺 ${mmss(u.until - Date.now())}` : ''}`, wardrobe);
+    }
+    case 'home-bag': return homeOnly('🎒 Cặp sách', bagMenu);
+    case 'mailbox':
+      return atSchool ? { label: '📮 Hộp thư góp ý', run: mailbox } : null;
+    case 'prank':
+      return prankTarget ? { label: prankLabel(prankTarget), run: () => prank(prankTarget) } : null;
     case 'home-desk': return homeOnly('📅 Bàn học', desk);
     case 'home-bed':
       return p === 'home' && !t.napped ? { label: '😴 Ngủ thêm một chút', run: async () => { t.napped = true; addStat('energy', 15); toast('😴 Ngủ thêm một lát… năng lượng +15'); } } : null;
@@ -807,44 +859,64 @@ function actionFor(id) {
   return null;
 }
 
+const cocoTxt = (n) => (n ? `${n} 🥥` : 'miễn phí');
+const effTxt = (f) => [f.energy ? `⚡${f.energy > 0 ? '+' : ''}${f.energy}` : '', f.mood ? `😊${f.mood > 0 ? '+' : ''}${f.mood}` : ''].filter(Boolean).join(' ');
+
 async function homeTable() {
   const t = state.today;
-  const v = await ask('🍚 Bàn ăn', '<p>Mẹ đã nấu cơm và chuẩn bị sẵn hộp đồ ăn.</p><p class="meta">Sắp có: dùng tiền coco mua hủ tiếu, cơm sườn… cho thêm năng lượng.</p>', [
-    { label: `🍚 Ăn cơm trắng${t.breakfast ? ' — đã ăn' : ' (năng lượng +15)'}`, value: 'eat', disabled: t.breakfast },
+  const foods = itemsOf('food', 'home').sort((a, b) => a.price - b.price);
+  const v = await ask('🍚 Bàn ăn', `<p>${t.breakfast ? 'Bạn đã ăn sáng rồi.' : 'Ăn sáng gì đây? Cơm trắng mẹ nấu thì miễn phí.'}</p><p class="meta">Bạn có ${state.coco} 🥥</p>`, [
+    ...foods.map((f) => ({ label: `${f.icon} ${f.name} — ${cocoTxt(f.price)} (${effTxt(f)})`, value: f.id, disabled: t.breakfast || state.coco < f.price })),
     { label: `🍱 Cất hộp đồ ăn vào cặp${t.lunchbox ? ' — đã lấy' : ''}`, value: 'box', disabled: t.lunchbox },
     { label: 'Thôi', value: null, cls: 'ghost' },
   ]);
-  if (v === 'eat') { t.breakfast = true; addStat('energy', 15); toast('🍚 No bụng rồi! Năng lượng +15'); }
-  if (v === 'box') { t.lunchbox = true; toast('🍱 Đã mang đồ ăn'); }
+  if (v === 'box') { t.lunchbox = true; toast('🍱 Đã mang đồ ăn'); return; }
+  const f = v && item(v);
+  if (!f || !eco.spend(state, f.price, `ăn ${f.id}`)) return;
+  t.breakfast = true;
+  addStat('energy', f.energy);
+  addStat('mood', f.mood);
+  toast(`${f.icon} Ngon quá! ${effTxt(f)}`);
+  save();
 }
 
 async function wardrobe() {
   const t = state.today, g = classGroup(state.section);
-  const u = uniformState();
-  const status = {
-    clean: `Đồng phục Lớp ${cls()} (màu ${g.colorName}) sạch thơm.`,
-    dirty: '⚠️ Đồng phục đang <b>dơ</b>. Giặt mất <b>15 phút</b> (thoát game vẫn giặt). Mặc đồ dơ đi học: nếu sao đỏ hoặc giám thị bắt gặp sẽ bị trừ hạnh kiểm.',
-    washing: `🧺 Đang giặt… còn <b>${mmss(state.uniform.until - Date.now())}</b>. Bạn có thể thoát game, lát quay lại.`,
-  }[u];
+  const u = laundry();
+  const sets = `Bạn có <b>${u.clean}</b> bộ sạch · <b>${u.dirty}</b> bộ dơ${u.washing ? ` · <b>${u.washing}</b> bộ đang giặt (còn ${mmss(u.until - Date.now())})` : ''}.`;
   const opts = [];
-  if (t.dressed) opts.push({ label: t.dirty ? '🧺 Cởi ra đem giặt (15 phút)' : '👕 Cởi đồng phục', value: t.dirty ? 'unwash' : 'undress' });
-  else if (u === 'clean') opts.push({ label: `👕 Mặc đồng phục Lớp ${cls()}`, value: 'dress' });
-  else if (u === 'dirty') opts.push({ label: '🧺 Giặt đồng phục (15 phút thật)', value: 'wash' }, { label: '👕 Mặc luôn đồ dơ', value: 'dressDirty' });
-  opts.push({ label: `🧣 Đeo khăn quàng đỏ${t.scarf ? ' — đã đeo' : ''}`, value: 'scarf', disabled: t.scarf });
-  opts.push({ label: 'Thôi', value: null, cls: 'ghost' });
-  const v = await ask(u === 'washing' ? '🧺 Máy giặt' : '👕 Tủ quần áo', `<p>${status}</p>`, opts);
-  if (v === 'dress') { t.dressed = true; t.dirty = false; toast('👕 Đồng phục gọn gàng!'); }
-  if (v === 'dressDirty') { t.dressed = true; t.dirty = true; toast('👕 Mặc tạm áo dơ… cẩn thận sao đỏ!'); }
-  if (v === 'undress') { t.dressed = false; }
-  if (v === 'wash' || v === 'unwash') {
-    t.dressed = t.dirty = false;
-    state.uniform = { state: 'washing', until: Date.now() + WASH_MS };
-    washNotified = false;
-    toast('🧺 Đã bỏ đồ vào máy giặt — 15 phút nữa xong', 3000);
+  if (t.dressed) opts.push({ label: t.dirty ? '🧺 Cởi bộ dơ ra' : '👕 Cởi đồng phục', value: 'undress' });
+  else {
+    if (u.clean) opts.push({ label: `👕 Mặc đồng phục sạch Lớp ${cls()}`, value: 'dress' });
+    if (u.dirty) opts.push({ label: '👕 Mặc luôn bộ dơ', value: 'dressDirty' });
   }
-  if (v === 'scarf') { t.scarf = true; toast('🧣 Đã đeo khăn quàng đỏ'); }
-  if (v && v !== 'scarf') makePlayer();
-  else if (v === 'scarf') setScarf(true);
+  if (u.dirty && !u.washing) opts.push({ label: `🧺 Giặt ${u.dirty} bộ dơ (15 phút thật)`, value: 'wash' });
+  opts.push({ label: `🧣 Đeo khăn quàng đỏ${t.scarf ? ' — đã đeo' : ''}`, value: 'scarf', disabled: t.scarf });
+  const accs = itemsOf('accessory').filter((a) => owned(a.id));
+  if (accs.length) opts.push({ label: '🎀 Phụ kiện…', value: 'acc' });
+  opts.push({ label: 'Thôi', value: null, cls: 'ghost' });
+  const v = await ask('👕 Tủ quần áo', `<p>Đồng phục Lớp ${cls()} màu <b>${g.colorName}</b>. ${sets}</p>
+    <p class="meta">Mặc bộ dơ đi học: nếu sao đỏ hoặc giám thị bắt gặp sẽ bị trừ hạnh kiểm. Mua thêm bộ dự phòng ở 🛒 Cửa hàng (bàn học).</p>`, opts);
+  if (v === 'dress') { u.clean--; t.dressed = true; t.dirty = false; toast('👕 Đồng phục gọn gàng!'); }
+  if (v === 'dressDirty') { u.dirty--; t.dressed = true; t.dirty = true; toast('👕 Mặc tạm áo dơ… cẩn thận sao đỏ!'); }
+  if (v === 'undress') { if (t.dirty) u.dirty++; else u.clean++; t.dressed = t.dirty = false; }
+  if (v === 'wash') {
+    u.washing = u.dirty;
+    u.dirty = 0;
+    u.until = Date.now() + WASH_MS;
+    washNotified = false;
+    toast(`🧺 Đã bỏ ${u.washing} bộ vào máy giặt — 15 phút nữa xong`, 3000);
+  }
+  if (v === 'scarf') { t.scarf = true; setScarf(true); toast('🧣 Đã đeo khăn quàng đỏ'); }
+  if (v === 'acc') {
+    const a = await ask('🎀 Phụ kiện', '<p>Chọn phụ kiện để đeo (chỉ để đẹp, không ảnh hưởng điểm).</p>', [
+      ...accs.map((x) => ({ label: `${x.icon} ${x.name}${state.acc === x.id ? ' — đang đeo' : ''}`, value: x.id, disabled: state.acc === x.id })),
+      ...(state.acc ? [{ label: '✖ Tháo phụ kiện', value: 'none' }] : []),
+      { label: 'Thôi', value: null, cls: 'ghost' },
+    ]);
+    if (a) state.acc = a === 'none' ? null : a;
+  }
+  if (v && v !== 'scarf' && v !== 'wash') makePlayer();
   save();
 }
 
@@ -853,10 +925,155 @@ async function desk() {
   const v = await ask('📅 Bàn học', `<p>Bạn đang học <b>Lớp ${cls()}</b>.</p>`, [
     { label: '📅 Xem thời khoá biểu', value: 'tt' },
     { label: `📝 Học bài (ôn 2 câu)${t.studied ? ' — đã học' : ''}`, value: 'hw', disabled: t.studied },
+    { label: `🛒 Cửa hàng online (${state.coco} 🥥)`, value: 'shop' },
     { label: 'Thôi', value: null, cls: 'ghost' },
   ]);
   if (v === 'tt') await showTimetable();
   if (v === 'hw') await homework();
+  if (v === 'shop') await shop();
+}
+
+// Online shop at home: uniforms, accessories, toys (food is bought where you eat it).
+async function shop() {
+  const cats = { uniform: '👕 Đồng phục', accessory: '🎀 Phụ kiện', toy: '🧸 Đồ chơi' };
+  for (;;) {
+    const c = await ask('🛒 Cửa hàng online', `<p>Bạn có <b>${state.coco} 🥥</b>. Coco kiếm được khi trả lời đúng (+${eco.EARN.correct}/câu), học xong môn (+${eco.EARN.subjectDone}), một buổi ngoan (+${eco.EARN.cleanDay}) — tối đa ${eco.EARN_CAP_PER_DAY} 🥥 mỗi ngày.</p>`, [
+      ...Object.entries(cats).map(([value, label]) => ({ label, value })),
+      { label: 'Đóng', value: null, cls: 'ghost' },
+    ]);
+    if (!c) return;
+    const list = itemsOf(c).sort((a, b) => a.price - b.price);
+    const have = (i) => (i.type === 'accessory' ? owned(i.id) : false);
+    const desc = (i) => (i.type === 'toy' ? ` · ${i.uses} lần dùng` : i.type === 'uniform' ? ` · +${i.count} bộ` : '');
+    const id = await ask(cats[c], `<p>Bạn có <b>${state.coco} 🥥</b>.</p>${list.filter((i) => i.desc).map((i) => `<p class="meta">${esc(i.icon)} <b>${esc(i.name)}</b>: ${esc(i.desc)}</p>`).join('')}
+      ${c === 'toy' ? '<p class="meta">Đồ chơi chỉ để đùa vui với bạn lúc ra chơi. Bị thầy cô bắt gặp sẽ bị tịch thu và trừ hạnh kiểm; chọc mãi một bạn là bắt nạt đó!</p>' : ''}`, [
+      ...list.map((i) => ({ label: `${i.icon} ${i.name} — ${cocoTxt(i.price)}${desc(i)}${have(i) ? ' — đã có' : ''}${i.type === 'toy' && owned(i.id) ? ` (còn ${state.inv[i.id]})` : ''}`, value: i.id, disabled: have(i) || state.coco < i.price })),
+      { label: '‹ Quay lại', value: null, cls: 'ghost' },
+    ]);
+    if (!id) continue;
+    const it = item(id);
+    if (eco.buy(state, it)) {
+      sfx('ok');
+      toast(`🛒 Đã mua ${it.icon} ${it.name}! Còn ${state.coco} 🥥`, 2600);
+      save();
+    }
+  }
+}
+
+async function bagMenu() {
+  const t = state.today;
+  const toys = itemsOf('toy').filter((i) => owned(i.id));
+  const v = await ask('🎒 Cặp sách', `<p>${t.bag ? '✅ Đã soạn sách vở.' : 'Chưa soạn sách vở.'}</p>${toys.length ? `<p class="meta">Đồ chơi mang theo (tối đa ${MAX_PACKED_TOYS} loại): ${esc(t.packed.map((id) => item(id)?.icon).join(' ')) || 'chưa có'}</p>` : ''}`, [
+    { label: `📚 Soạn sách vở${t.bag ? ' — xong' : ''}`, value: 'books', disabled: t.bag },
+    ...toys.map((i) => {
+      const on = t.packed.includes(i.id);
+      return { label: `${on ? '✖ Bỏ ra' : '➕ Mang'} ${i.icon} ${i.name} (còn ${state.inv[i.id]} lần)`, value: i.id, disabled: !on && t.packed.length >= MAX_PACKED_TOYS };
+    }),
+    { label: 'Thôi', value: null, cls: 'ghost' },
+  ]);
+  if (v === 'books') { t.bag = true; toast('🎒 Đã soạn cặp'); }
+  else if (v) {
+    t.packed = t.packed.includes(v) ? t.packed.filter((x) => x !== v) : [...t.packed, v];
+    toast(t.packed.includes(v) ? `${item(v).icon} Đã bỏ vào cặp` : 'Đã lấy ra');
+  }
+}
+
+// ---------------- pranks (toys from mods/) ----------------
+// Light-hearted only: classmates (never teachers, staff or the older bullies), only in free time and outside
+// quiet rooms. Staff nearby may confiscate the toy; pranking the same classmate again is called out as bullying.
+let prankTarget = null;
+function findPrankTarget() {
+  const p = state.phase, t = state.today;
+  if (sitting || busy || !(p === 'after' || (p === 'school' && ['preBell', 'break', 'free'].includes(sub)))) return null;
+  if (zoneAt(player.position)?.quiet) return null;
+  if (!t.packed.some(owned)) return null;
+  return npcs.nearest(player.position, PRANK_RANGE, (n) => n.role === 'student' && !n.bully);
+}
+function prankLabel(n) {
+  const toys = state.today.packed.filter(owned).map(item).filter(Boolean);
+  return toys.length === 1 ? `${toys[0].icon} ${toys[0].verb} ${n.name}` : `😜 Chọc ${n.name}…`;
+}
+async function prank(n) {
+  const t = state.today;
+  const toys = t.packed.filter(owned).map(item).filter(Boolean);
+  let toy = toys[0];
+  if (toys.length > 1) {
+    const id = await ask(`😜 Chọc ${n.name}`, '<p>Dùng gì đây?</p>', [
+      ...toys.map((i) => ({ label: `${i.icon} ${i.verb} (còn ${state.inv[i.id]} lần)`, value: i.id })),
+      { label: 'Thôi', value: null, cls: 'ghost' },
+    ]);
+    if (!id) return;
+    toy = item(id);
+  }
+  if (!toy || !owned(toy.id)) return;
+  state.inv[toy.id]--;
+  const np = n.mesh.position;
+  player.rotation.y = Math.atan2(np.x - player.position.x, np.z - player.position.z);
+  spawnFx(toy.fx, player.position, np);
+  sfx('pop');
+  setTimeout(() => say(n.label, pick(toy.lines)), 380);
+  addStat('mood', toy.fun);
+  t.pranks++;
+  state.prankCount++;
+  t.victims[n.name] = (t.victims[n.name] ?? 0) + 1;
+  setTimeout(() => { n.path = [pick(W.spots.yardPoints)]; n.speed = 4.2; n.wander = true; n.onArrive = null; }, 600);
+  const watcher = npcs.list.find((w) => !w.hidden && w.mesh.visible && (w.teacher || w.tag === 'Sao đỏ') && w.role !== 'mom' &&
+    w.mesh.position.distanceTo(player.position) < PRANK_WATCH);
+  await new Promise((r) => setTimeout(r, 700));
+  if (watcher && Math.random() < toy.catch) {
+    t.caughtPrank = true;
+    addStat('conduct', -3);
+    state.inv[toy.id] = 0;
+    say(watcher.label, 'Em kia! Đưa đây!');
+    await ask(`🚨 ${watcher.name} bắt gặp`, `<p>“Đùa kiểu này làm bạn khó chịu đấy. ${esc(toy.name)} bị tịch thu!”</p><p class="meta">Hạnh kiểm −3 · Mất ${esc(toy.icon)} ${esc(toy.name)}</p>`, [{ label: 'Dạ, em xin lỗi', value: 1 }]);
+  } else if (t.victims[n.name] >= 2) {
+    addStat('conduct', -2);
+    await ask('😢 Bạn ấy buồn rồi', `<p><b>${esc(n.name)}</b> bị bạn chọc ${t.victims[n.name]} lần, đã đi mách cô chủ nhiệm.</p>
+      <p>Đùa một lần là vui, nhưng <b>chọc mãi một người là bắt nạt</b>. Rủ bạn ấy chơi cùng thay vì chọc nhé!</p><p class="meta">Hạnh kiểm −2</p>`, [{ label: 'Mình hiểu rồi', value: 1 }]);
+  } else if (t.pranks === 3) toast('😅 Hôm nay chọc bạn nhiều rồi đó — coi chừng bị xếp vào nhóm cá biệt!', 3000);
+  if (!owned(toy.id)) {
+    t.packed = t.packed.filter((x) => x !== toy.id);
+    if (!t.caughtPrank) toast(`${toy.icon} ${toy.name} đã dùng hết`);
+  }
+  save();
+}
+
+// small particle effects for pranks
+const fxList = [];
+const fxGeo = new THREE.SphereGeometry(0.07, 6, 4);
+function spawnFx(fx, from, to) {
+  const n = fx.kind === 'blob' ? 1 : fx.kind === 'confetti' ? 18 : 10;
+  for (let i = 0; i < n; i++) {
+    const color = fx.kind === 'confetti' ? new THREE.Color().setHSL(Math.random(), 0.85, 0.6) : new THREE.Color(fx.color);
+    const m = new THREE.Mesh(fxGeo, new THREE.MeshBasicMaterial({ color, transparent: true }));
+    if (fx.kind === 'blob') m.scale.setScalar(2.2);
+    const end = new THREE.Vector3(to.x + (Math.random() - 0.5) * 0.5, 1.1 + Math.random() * 0.5, to.z + (Math.random() - 0.5) * 0.5);
+    const start = fx.kind === 'confetti' ? end.clone() : new THREE.Vector3(from.x, 1.0, from.z);
+    const vel = fx.kind === 'confetti' ? new THREE.Vector3((Math.random() - 0.5) * 3, 2 + Math.random() * 2, (Math.random() - 0.5) * 3) : null;
+    m.position.copy(start);
+    scene.add(m);
+    fxList.push({ m, start, end, vel, t: -i * 0.03, dur: fx.kind === 'confetti' ? 1.1 : 0.45 });
+  }
+}
+function fxTick(dt) {
+  for (let i = fxList.length - 1; i >= 0; i--) {
+    const f = fxList[i];
+    f.t += dt;
+    if (f.t < 0) continue;
+    const k = f.t / f.dur;
+    if (f.vel) { f.m.position.addScaledVector(f.vel, dt); f.vel.y -= 5 * dt; }
+    else { f.m.position.lerpVectors(f.start, f.end, Math.min(1, k)); f.m.position.y += Math.sin(Math.min(1, k) * Math.PI) * 0.4; }
+    f.m.material.opacity = k > 1 ? Math.max(0, 1 - (k - 1) * 3) : 1;
+    if (k >= 1.35) { scene.remove(f.m); f.m.material.dispose(); fxList.splice(i, 1); }
+  }
+}
+
+async function mailbox() {
+  const p = player.position, z = zoneAt(p);
+  await openFeedback({
+    name: state.name, school: state.school, grade: state.grade, section: state.section, phase: state.phase,
+    zone: z ? z.name : 'Đường đi', x: Math.round(p.x * 10) / 10, z: Math.round(p.z * 10) / 10, lastQ: ui.lastQ,
+  }, cleanText);
 }
 
 async function showTimetable() {
@@ -890,30 +1107,34 @@ async function quizFor(id, n, where, mult = 1) {
   state.answered += n;
   state.correct += c;
   award(id, c * mult);
-  toast(`${s.icon} ${s.name}: đúng ${c}/${n}${mult > 1 ? ` (×${mult} điểm)` : ''}`);
+  const got = eco.earn(state, c * eco.EARN.correct, 'ôn bài');
+  toast(`${s.icon} ${s.name}: đúng ${c}/${n}${mult > 1 ? ` (×${mult} điểm)` : ''}${got ? ` · 🥥 +${got}` : ''}`);
   save();
 }
 
 async function canteen() {
   const p = state.phase;
-  const v = await ask('🥖 Căng tin', `<p>Bạn có ${state.stats.money}k.</p>`, [
-    { label: '🥖 Bánh mì — 10k (năng lượng +25)', value: 'bread', disabled: state.stats.money < 10 },
-    { label: '🥛 Sữa đậu nành — 5k (năng lượng +10)', value: 'milk', disabled: state.stats.money < 5 },
-    ...(p === 'after' ? [{ label: '🍧 Ngồi ăn vặt với bạn — 10k (lêu lổng)', value: 'snack', disabled: state.stats.money < 10 }] : []),
+  const foods = itemsOf('food', 'canteen').sort((a, b) => a.price - b.price);
+  const v = await ask('🥖 Căng tin', `<p>Bạn có ${state.coco} 🥥.</p>`, [
+    ...foods.map((f) => ({ label: `${f.icon} ${f.name} — ${cocoTxt(f.price)} (${effTxt(f)})`, value: f.id, disabled: state.coco < f.price })),
+    ...(p === 'after' ? [{ label: '🍧 Ngồi ăn vặt với bạn — 10 🥥 (lêu lổng)', value: 'snack', disabled: state.coco < 10 }] : []),
     { label: 'Thôi', value: null, cls: 'ghost' },
   ]);
-  if (v === 'bread') { addStat('money', -10); addStat('energy', 25); toast('🥖 Năng lượng +25'); }
-  if (v === 'milk') { addStat('money', -5); addStat('energy', 10); toast('🥛 Năng lượng +10'); }
-  if (v === 'snack') { addStat('money', -10); await loiter('🍧 Ăn vặt với bạn', 12, 5, 0); }
+  if (v === 'snack') { if (eco.spend(state, 10, 'ăn vặt')) await loiter('🍧 Ăn vặt với bạn', 12, 5, 0); return; }
+  const f = v && item(v);
+  if (!f || !eco.spend(state, f.price, `căng tin ${f.id}`)) return;
+  addStat('energy', f.energy);
+  addStat('mood', f.mood);
+  toast(`${f.icon} ${f.name}: ${effTxt(f)}`);
 }
 
-async function loiter(text, mood, energy, money) {
+async function loiter(text, mood, energy, cost) {
   const t = state.today;
   t.loiter++;
   state.loiterCount++;
   addStat('mood', mood);
   addStat('energy', energy);
-  addStat('money', money);
+  if (cost < 0) eco.lose(state, -cost, 'lêu lổng');
   addStat('conduct', -2);
   toast(`${text}: tâm trạng +${mood}, hạnh kiểm −2`, 3000);
   if (t.loiter >= 2) await goHome('📞 Mẹ gọi: “Sao giờ này chưa về hả con?”');
@@ -1018,7 +1239,8 @@ function setObjective() {
   let s = '';
   if (p === 'home') {
     const miss = homeMissing();
-    const wash = uniformState() === 'washing' ? `🧺 Giặt xong sau ${mmss(state.uniform.until - Date.now())} · ` : '';
+    const u = laundry();
+    const wash = u.washing ? `🧺 Giặt xong sau ${mmss(u.until - Date.now())} · ` : '';
     s = miss.length ? `${wash}Còn: ${miss.filter((m) => !wash || !m.startsWith('đợi')).join(' · ')}` : '✅ Đủ đồ rồi! Ra cửa đi học';
   } else if (p === 'school') {
     const n = t.subjects.length;
@@ -1070,7 +1292,7 @@ function updateHud(npcCount) {
   $('conduct').textContent = `${conductName(s.conduct)} (${s.conduct})`;
   $('energyBar').style.width = s.energy + '%';
   $('moodBar').style.width = s.mood + '%';
-  $('money').textContent = s.money;
+  $('money').textContent = state.coco;
   const z = zoneAt(player.position);
   $('zoneName').textContent = z ? z.name + (z.quiet ? ' 🤫' : '') : 'Đường đi';
   $('tagChips').innerHTML = state.tags.map((t) => `<span>${TAGS[t].icon} ${esc(TAGS[t].name)}</span>`).join('');
@@ -1097,6 +1319,7 @@ $('btnTags').onclick = () => {
   const rows = Object.entries(TAGS).map(([k, t]) => `<div class="tagRow ${has(k) ? 'on' : ''}">${t.icon} ${t.name}${has(k) ? ' — bạn đang có' : ''}<small>Cách có: ${t.how}</small><small>Quyền: ${t.perk}</small></div>`).join('');
   ask('🏷️ Danh hiệu (tag)', rows, [{ label: 'Đóng', value: 1 }]);
 };
+$('btnMail').onclick = () => { if (!ui.modalOpen && !busy && state) { busy = true; mailbox().finally(() => { busy = false; }); } };
 $('btnSound').onclick = () => { ui.soundOn = !ui.soundOn; $('btnSound').textContent = ui.soundOn ? '🔊' : '🔇'; };
 $('btnHelp').onclick = () => { if (!ui.modalOpen) showHelp(); };
 function showHelp() {
@@ -1109,6 +1332,10 @@ function showHelp() {
     🏫 <b>Tại trường</b> — ${PERIODS_PER_SESSION} tiết học (trả lời câu hỏi để lấy điểm môn), có ra chơi. Học xong thì tự do — bạn có thể thoát game, lát quay lại.<br>
     🔔 <b>Tan trường</b> (sau 6 tiếng) — về thẳng nhà, hoặc ở lại chơi (lêu lổng: vui nhưng mất hạnh kiểm).</p>
     <p>👕 Mặc đồ dơ đi học: nếu sao đỏ hoặc giám thị bắt gặp sẽ bị trừ hạnh kiểm.</p>
+    <p>🥥 <b>Coco</b>: kiếm khi trả lời đúng, học xong môn, một buổi ngoan (tối đa ${eco.EARN_CAP_PER_DAY}/ngày). Tiêu vào đồ ăn sáng, căng tin, 🛒 cửa hàng ở bàn học (đồng phục dự phòng, phụ kiện, đồ chơi).</p>
+    <p>😜 <b>Đồ chơi</b>: bỏ vào cặp ở nhà, ra chơi lại gần bạn để đùa. Thầy cô bắt gặp là bị tịch thu; chọc mãi một bạn là bắt nạt!</p>
+    <p>📮 <b>Góp ý</b>: thấy câu hỏi sai, chỗ bị kẹt, lỗi game → nút 📮 hoặc hộp thư cạnh cổng trường.</p>
+    <p class="meta">Phiên bản ${GAME_VERSION}</p>
     <p><b>Lớp & lên lớp:</b> mỗi khối có 4 lớp, mỗi lớp 3 môn và một màu đồng phục (A1 Toán·KHTN·Tin → A2 Văn·Sử Địa·GDCD → A3 Anh·Công nghệ·Trải nghiệm → A4 Thể chất·Nghệ thuật·Địa phương). Mỗi môn cần ${POINTS_TO_PASS} điểm. Xong lớp A4 → lên khối trên, từ lớp 6 đến lớp 9.</p>
     <p>🤫 Lớp học và thư viện không được nói chuyện (trừ học sinh cá biệt). Xem 🏷️ để biết các danh hiệu và khu vực riêng.</p>`, [{ label: 'Vào chơi', value: 1 }]);
 }
@@ -1188,6 +1415,7 @@ function tick(t) {
     }
   }
   animateCharacter(player, dt, moved);
+  fxTick(dt);
 
   // game clock + phase logic
   if (!paused) phaseTick(dt);
@@ -1200,6 +1428,8 @@ function tick(t) {
     let best = null, bd = Infinity;
     const spots = W.hotspots.slice();
     if (state.phase === 'school' && sub === 'class' && !sitting) { const s = mySeat(); spots.push({ id: 'seat', x: s.x, z: s.z, r: 1.3 }); }
+    prankTarget = findPrankTarget();
+    if (prankTarget) spots.push({ id: 'prank', x: prankTarget.mesh.position.x, z: prankTarget.mesh.position.z, r: PRANK_RANGE + 0.1 });
     for (const h of spots) {
       const d = Math.hypot(h.x - player.position.x, h.z - player.position.z);
       if (d < h.r && d < bd) {
@@ -1241,7 +1471,7 @@ function phaseTick(dt) {
   if (p === 'home') {
     state.clock = 360 + Math.min(59, (Date.now() - state.homeAt) / 60000);
     if (now - lastMomLine > 25) { lastMomLine = now; say(npcs.mom.label, pick(['Nhớ khăn quàng đỏ nhé!', 'Ăn sáng chưa con?', 'Áo dơ thì bỏ vào máy giặt nha con!', 'Soạn cặp chưa đó?'])); }
-    if (!washNotified && uniformState() === 'clean') {
+    if (!washNotified && !laundry().washing) {
       washNotified = true;
       sfx('up');
       toast('🧺 Đồng phục giặt xong rồi, khô thơm tho!', 3000);
@@ -1293,6 +1523,8 @@ async function begin(fresh) {
   $('start').hidden = true;
   $('hud').hidden = false;
   if (!state.today) state.today = newToday();
+  await catalogReady;
+  flushOutbox();
   respawnNpcs();
   makePlayer();
   if (fresh) await showHelp();
@@ -1341,7 +1573,10 @@ if (location.search.includes('debug')) {
     tp: (x, z) => player.position.set(x, 0, z),
     skip: (sec) => { now += sec; },
     endSession: () => { state.sessionEnd = Date.now() - 1; },        // pretend the 6 hours are over
-    finishWash: () => { if (state.uniform.state === 'washing') state.uniform.until = Date.now() - 1; },
+    finishWash: () => { if (state.uniform.washing) state.uniform.until = Date.now() - 1; },
+    get catalog() { return CATALOG; },
+    get prankTarget() { return prankTarget; },
+    giveCoco: (n) => { state.coco += n; },
     get today() { return state.today; },
     pos: () => ({ x: player.position.x, z: player.position.z }),
   };

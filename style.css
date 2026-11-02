@@ -126,6 +126,8 @@ button { font: inherit; cursor: pointer; }
 #mBody { line-height: 1.5; }
 #mBody .q { font-size: 18px; font-weight: 700; margin: 6px 0 4px; }
 #mBody .meta { color: var(--muted); font-size: 13px; }
+#mBody textarea { display: block; width: 100%; box-sizing: border-box; margin: 6px 0; padding: 10px; border-radius: 10px; border: 1px solid #b8c4d0;
+  font: inherit; font-size: 16px; background: var(--bg); color: var(--ink); resize: vertical; -webkit-user-select: text; user-select: text; }
 .prog { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; font-size: 14px; }
 .prog i { grid-column: 1 / -1; height: 6px; background: #dfe6ec; border-radius: 4px; overflow: hidden; margin-bottom: 6px; }
 .prog em { display: block; height: 100%; background: var(--good); }

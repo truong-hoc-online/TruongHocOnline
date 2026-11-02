@@ -75,8 +75,40 @@ export function makeCharacter(opts = {}) {
   scarf.scale.set(1, 1, 0.35);
   scarf.visible = !!opts.scarf;
 
+  if (opts.acc) addAccessory(bodyG, headY, opts.acc);
+
   root.userData = { bodyG, legs, arms, scarf, phase: Math.random() * 6, sitting: false };
   return root;
+}
+
+// Accessory shapes are fixed here; mods only choose the kind and colour (see items.js ACC_KINDS).
+const accGeo = {
+  capTop: new THREE.SphereGeometry(0.45, 18, 10, 0, Math.PI * 2, 0, Math.PI * 0.42),
+  brim: new THREE.CylinderGeometry(0.3, 0.3, 0.04, 16, 1, false, -Math.PI / 2, Math.PI),
+  bowPart: new THREE.ConeGeometry(0.11, 0.2, 4),
+  knot: new THREE.SphereGeometry(0.06, 8, 6),
+  lens: new THREE.TorusGeometry(0.085, 0.018, 6, 16),
+  band: new THREE.TorusGeometry(0.42, 0.035, 6, 24, Math.PI),
+};
+function addAccessory(parent, headY, { kind, color }) {
+  const m = mat(new THREE.Color(color).getHex());
+  if (kind === 'cap') {
+    part(accGeo.capTop, m, 0, headY + 0.05, 0, parent);
+    const b = part(accGeo.brim, m, 0, headY + 0.14, 0.18, parent);
+    b.scale.set(1, 1, 1.1);
+  } else if (kind === 'bow') {
+    const l = part(accGeo.bowPart, m, -0.12, headY + 0.4, 0.05, parent);
+    const r = part(accGeo.bowPart, m, 0.12, headY + 0.4, 0.05, parent);
+    l.rotation.z = Math.PI / 2;
+    r.rotation.z = -Math.PI / 2;
+    part(accGeo.knot, m, 0, headY + 0.4, 0.05, parent);
+  } else if (kind === 'glasses') {
+    part(accGeo.lens, m, -0.13, headY + 0.02, 0.39, parent);
+    part(accGeo.lens, m, 0.13, headY + 0.02, 0.39, parent);
+  } else if (kind === 'headband') {
+    const h = part(accGeo.band, m, 0, headY + 0.1, 0, parent);
+    h.rotation.y = Math.PI / 2;
+  }
 }
 
 // Call every frame. speed = units/sec actually moved.

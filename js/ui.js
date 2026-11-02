@@ -4,7 +4,7 @@ export const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export { esc };
 
-export const ui = { modalOpen: false, soundOn: true };
+export const ui = { modalOpen: false, soundOn: true, lastQ: null };
 
 // ---------- modal ----------
 // buttons: [{ label, value, cls }]. Resolves with the chosen value.
@@ -42,6 +42,7 @@ export async function runQuiz(title, meta, questions) {
       await ask(title, `<div class="meta">${esc(meta)} · Câu ${i + 1}/${questions.length}</div><p>😴 Bạn mệt quá nên ngủ gật mất câu này…</p>`, [{ label: 'Tỉnh dậy', value: 1 }]);
       continue;
     }
+    ui.lastQ = { title, q: qu.q, options: qu.options, answer: qu.answer }; // for the feedback mailbox
     const chosen = await new Promise((resolve) => {
       ui.modalOpen = true;
       $('mTitle').textContent = title;

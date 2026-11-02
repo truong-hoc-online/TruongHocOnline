@@ -255,6 +255,12 @@ export function buildWorld(scene) {
   }
   W.spots.redStar = { x: 2.5, z: 25 };
 
+  // feedback mailbox near the gate
+  box(5.7, 23.3, 5.9, 23.5, 1.1, 0x607d8b);
+  box(5.3, 23.1, 6.3, 23.7, 0.6, 0xd32f2f, { y: 1.1 });
+  sign('📮 Góp ý', 5.8, 2.3, 23.75, 0, { bg: '#d32f2f', w: 1.6, font: 60 });
+  hotspot('mailbox', 5.8, 24.4, 1.4);
+
   // ---------- home ----------
   const hx = HOME_X;
   floor(hx - 14, -12, hx + 14, 12, 0x9ccc65, 0.004);

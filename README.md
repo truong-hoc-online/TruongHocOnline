@@ -24,17 +24,30 @@ Cảm ứng: cần điều khiển (trái dưới) hoặc chạm xuống đất 
 
 ## Lối chơi
 
-**Server = tên trường** (THCS Hoa Phượng, Ánh Dương…). **Một ngày có 4 giai đoạn:**
+**Server = tên trường** (THCS Hoa Phượng, Ánh Dương…). Game chạy theo **giờ thật**: mỗi buổi ở trường dài
+**6 tiếng**, rồi về nhà chuẩn bị cho buổi sau. Thoát game giữa chừng không sao, vào lại là tiếp tục đúng chỗ;
+nếu đã quá 6 tiếng thì coi như đã tan trường và về nhà.
 
 | Giai đoạn | Việc |
 |---|---|
-| 🌅 Chuẩn bị đến trường | Ăn sáng, mặc đồng phục, đeo khăn quàng đỏ, soạn cặp, mang đồ ăn. Đồng hồ chạy; ra khỏi nhà sau 6:45 là trễ. Sao đỏ ở cổng ghi tên nếu trễ hoặc thiếu đồ |
-| 🏫 Tại trường | 4 tiết, mỗi tiết 3 câu trắc nghiệm của môn đó. Giữa tiết 2 và 3 là ra chơi (căng tin, đá cầu, thư viện). Không vào lớp kịp là muộn; không vào hẳn là trốn tiết |
-| 🔔 Tan trường | Về thẳng nhà, hoặc lêu lổng (ăn vặt, đá cầu, tụ tập): vui hơn nhưng trừ hạnh kiểm và bớt lượt việc buổi tối |
-| 🌙 Buổi tối | 4 lượt việc: học bài (lấy thêm điểm), giặt đồng phục, nghỉ ngơi, điện thoại… soạn cặp. Lên giường để sang ngày mới |
+| 🏠 Ở nhà chuẩn bị | Không giới hạn giờ. Ăn sáng (cơm trắng; sắp có món mua bằng tiền coco), **giặt đồ nếu dơ: 15 phút thật** (thoát game vẫn giặt), mặc đồng phục đúng màu lớp, khăn quàng đỏ, soạn cặp, mang đồ ăn. Sao đỏ ở cổng ghi tên nếu thiếu đồ |
+| 🏫 Tại trường | 6 tiết, mỗi tiết 3 câu trắc nghiệm. Ra chơi sau tiết 2 và tiết 4 (căng tin, đá cầu, thư viện). Không vào lớp kịp là muộn; không vào hẳn là trốn tiết. Học xong thì tự do ở trường tới giờ tan |
+| 🔔 Tan trường | Về thẳng nhà, hoặc lêu lổng (ăn vặt, đá cầu, tụ tập): vui hơn nhưng trừ hạnh kiểm; ở lại quá 3 phút thì mẹ gọi về |
 
-**Lên lớp:** mỗi môn cần 5 điểm (mỗi câu đúng 1 điểm). Đủ 12 môn và hạnh kiểm từ Trung bình thì lên lớp.
-Câu hỏi khó dần theo lớp.
+**Đồ dơ:** mặc cả buổi thì đồng phục dơ. Mặc đồ dơ đi học không bị trừ ngay; chỉ khi **sao đỏ** (ở cổng) hoặc
+**thầy giám thị** (đi quanh sân) bắt gặp mới bị trừ 3 hạnh kiểm, tối đa 1 lần mỗi buổi.
+
+**Lớp và lên lớp:** mỗi khối có 4 lớp, mỗi lớp 3 môn và một màu đồng phục. Học xong 3 môn thì chuyển lớp:
+
+| Lớp | Môn | Áo |
+|---|---|---|
+| A1 | Toán · Khoa học tự nhiên · Tin học | xanh dương |
+| A2 | Ngữ văn · Lịch sử và Địa lý · GDCD | đỏ đô |
+| A3 | Tiếng Anh · Công nghệ · Trải nghiệm, hướng nghiệp | xanh lá |
+| A4 | Giáo dục thể chất · Nghệ thuật · Giáo dục địa phương | cam |
+
+Mỗi môn cần 5 điểm (mỗi câu đúng 1 điểm). Xong lớp A4 (đủ 12 môn) và hạnh kiểm từ Trung bình thì lên khối trên
+(6A4 → 7A1 …). Câu hỏi khó dần theo lớp.
 
 **Khu vực không được nói chuyện:** lớp học, thư viện. Học sinh cá biệt thì "dám" nói, nhưng có thể bị nhắc.
 
@@ -44,7 +57,7 @@ Câu hỏi khó dần theo lớp.
 |---|---|---|
 | 🌟 Học sinh giỏi | Đúng từ 80% (≥ 15 câu), hạnh kiểm từ 80 | Phòng học sinh giỏi: thử thách nhân đôi điểm |
 | 🎗️ Lớp trưởng | Từ ngày 3, hạnh kiểm từ 85, đúng từ 60% | Phòng Đội (họp cán sự, sổ đầu bài), nút "Giữ trật tự" |
-| 😎 Cá biệt | Hạnh kiểm dưới 60 / trễ 3 lần / lêu lổng 4 lần | Nói chuyện trong lớp và thư viện, Góc sau căng tin. Hạnh kiểm lên 75 thì hết |
+| 😎 Cá biệt | Hạnh kiểm dưới 60 / vào lớp muộn 3 lần / lêu lổng 4 lần | Nói chuyện trong lớp và thư viện, Góc sau căng tin. Hạnh kiểm lên 75 thì hết |
 | 🛡️ Bị bắt nạt | Gặp sự kiện bị bắt nạt lúc ra chơi | Nút "Báo cô", thầy giám thị bảo vệ, cô Thu ở Phòng tư vấn. Kèm số 111 ngoài đời |
 | 👩‍🏫 Cô giáo | Chưa có (dành cho bản nhiều người chơi) | Phòng giáo viên |
 

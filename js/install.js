@@ -58,19 +58,27 @@ function androidSteps() {
   </ol>`;
 }
 
-export async function showInstall() {
-  if (deferred) {
-    deferred.prompt();
-    const { outcome } = await deferred.userChoice;
-    deferred = null;
-    if (outcome === 'accepted') setPref({ installed: true });
-    refreshButton();
-    return;
-  }
+// Native one-tap install. prompt() is only allowed inside a user gesture (tap), never from a timer.
+async function nativeInstall() {
+  if (!deferred) return;
+  const d = deferred;
+  deferred = null;
+  d.prompt();
+  const { outcome } = await d.userChoice;
+  if (outcome === 'accepted') { setPref({ installed: true }); closeSheet(); }
+  refreshButton();
+}
+
+// fromTap: called from a button press (can use the native prompt directly)
+export async function showInstall(fromTap = false) {
+  if (deferred && fromTap) return nativeInstall();
   const title = isIOS ? 'Cài trên iPhone' : isAndroid ? 'Cài trên Android' : 'Cài lên điện thoại';
   const body = isIOS ? (iosOtherBrowser ? iosOtherSteps() : iosSafariSteps()) : androidSteps();
   $('installTitle').textContent = title;
-  $('installBody').innerHTML = body + (isIOS ? '<p class="warn">⚠️ Tiến độ chơi trong trình duyệt <b>không chuyển sang</b> app đã cài. Nên cài trước rồi mới tạo nhân vật.</p>' : '');
+  $('installBody').innerHTML = (deferred ? '<button class="primary" id="installNative">📲 Cài ngay (1 chạm)</button><p class="info">Hoặc làm theo các bước:</p>' : '') + body +
+    (isIOS ? '<p class="warn">⚠️ Tiến độ chơi trong trình duyệt <b>không chuyển sang</b> app đã cài. Nên cài trước rồi mới tạo nhân vật.</p>' : '');
+  const nb = $('installNative');
+  if (nb) nb.onclick = nativeInstall;
   $('install').hidden = false;
 }
 
@@ -80,7 +88,7 @@ export function initInstall() {
   $('installDone').onclick = () => { setPref({ installed: true }); closeSheet(); };
   $('installLater').onclick = () => { setPref({ laterAt: Date.now() }); closeSheet(); };
   $('installClose').onclick = () => { setPref({ laterAt: Date.now() }); closeSheet(); };
-  $('btnInstall').onclick = showInstall;
+  $('btnInstall').onclick = () => showInstall(true);
   refreshButton();
   // auto-show once on phones (not again for 3 days after "Để sau")
   const p = getPref();

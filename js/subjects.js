@@ -19,6 +19,16 @@ export const SUBJECTS = [
 
 export const POINTS_TO_PASS = 5; // correct answers needed to finish a subject in one grade
 
+// Each grade is split into 4 classes of 3 subjects: finish 6A1 → move to 6A2 … → 6A4 → grade 7.
+// `shirt` = uniform colour of that class (students of different classes are told apart by it).
+export const CLASS_GROUPS = [
+  { sec: 1, subjects: ['toan', 'khtn', 'tin'], shirt: 0x7fb2f0, colorName: 'xanh dương' },
+  { sec: 2, subjects: ['van', 'su-dia', 'gdcd'], shirt: 0xc0485a, colorName: 'đỏ đô' },
+  { sec: 3, subjects: ['anh', 'cong-nghe', 'trai-nghiem'], shirt: 0x6cbf74, colorName: 'xanh lá' },
+  { sec: 4, subjects: ['the-duc', 'nghe-thuat', 'dia-phuong'], shirt: 0xf3a14a, colorName: 'cam' },
+];
+export const classGroup = (sec) => CLASS_GROUPS[sec - 1];
+
 const BANK = {
   van: [
     { q: 'Tác giả của "Truyện Kiều" là ai?', a: ['Nguyễn Du', 'Nguyễn Trãi', 'Hồ Xuân Hương', 'Nguyễn Đình Chiểu'] },

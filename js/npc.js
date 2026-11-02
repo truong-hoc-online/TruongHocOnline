@@ -26,8 +26,9 @@ export class Npcs {
     return n;
   }
 
-  // (Re)create everyone for the player's grade. Player sits at seat index 9 of their class.
-  spawn(grade) {
+  // (Re)create everyone for the player's grade/class. Rooms 1–4 = classes A1–A4 of that grade;
+  // `n.grade` holds the room (class section) number. Player sits at seat index 9 of their room.
+  spawn(grade, section, shirts) {
     this.list.forEach((n) => { this.scene.remove(n.mesh); n.label.el.remove(); });
     this.list = [];
     const used = new Set();
@@ -37,23 +38,25 @@ export class Npcs {
       used.add(s);
       return s;
     };
-    for (const g of [6, 7, 8, 9]) {
-      const count = g === grade ? 15 : 6;
+    const others = ['Cô Lý', 'Thầy Tâm', 'Cô Vân', 'Thầy Bình'];
+    for (const g of [1, 2, 3, 4]) {
+      const count = g === section ? 15 : 6;
       const seats = this.W.seats[g];
       for (let i = 0, s = 0; i < count && s < seats.length; s++) {
-        if (g === grade && s === 9) continue;
+        if (g === section && s === 9) continue;
         const girl = Math.random() < 0.5;
-        this.add(name(girl), { girl, skin: pick(SKINS), hair: pick(HAIRS), scarf: Math.random() < 0.85 }, { role: 'student', grade: g, seat: seats[s] });
+        this.add(name(girl), { girl, skin: pick(SKINS), hair: pick(HAIRS), scarf: Math.random() < 0.85, shirt: shirts[g - 1] },
+          { role: 'student', grade: g, seat: seats[s], tag: g === section ? '' : `${grade}A${g}` }); // classmates: told apart by shirt colour
         i++;
       }
       const t = this.W.spots[`teacher${g}`];
-      this.add(g === grade ? 'Cô Hạnh' : pick(['Cô Lý', 'Thầy Tâm', 'Cô Vân', 'Thầy Bình']), { teacher: true, skin: SKINS[0], hair: HAIRS[3], shirt: pick([0xf3a6c0, 0x9fc5e8, 0xf9cb9c, 0xb6d7a8]) },
+      this.add(g === section ? 'Cô Hạnh' : others[g - 1], { teacher: true, skin: SKINS[0], hair: HAIRS[3], shirt: pick([0xf3a6c0, 0x9fc5e8, 0xf9cb9c, 0xb6d7a8]) },
         { role: 'teacher', grade: g, teacher: true, tag: 'Cô giáo', x: t.x, z: t.z, home: t });
     }
-    // bullies are older students from grade 9
+    // bullies are older students from grade 9: no seat here, they only show up in the yard
     this.bullies = [
-      this.add('Tèo Bự', { skin: SKINS[2], hair: HAIRS[3], scarf: false }, { role: 'student', grade: 9, bully: true, seat: this.W.seats[9][20] }),
-      this.add('Long Gấu', { skin: SKINS[1], hair: HAIRS[0], scarf: false }, { role: 'student', grade: 9, bully: true, seat: this.W.seats[9][21] }),
+      this.add('Tèo Bự', { skin: SKINS[2], hair: HAIRS[3], scarf: false }, { role: 'student', bully: true, tag: 'Lớp 9' }),
+      this.add('Long Gấu', { skin: SKINS[1], hair: HAIRS[0], scarf: false }, { role: 'student', bully: true, tag: 'Lớp 9' }),
     ];
     const S = this.W.spots;
     this.add('Cô Lan', { teacher: true, hair: HAIRS[1], shirt: 0xb4a7d6 }, { role: 'staff', teacher: true, tag: 'Thư viện', x: S.librarian.x, z: S.librarian.z, home: S.librarian });
@@ -61,7 +64,7 @@ export class Npcs {
     this.redStar = this.add('Bảo Anh', { girl: true, hair: HAIRS[0], scarf: true }, { role: 'staff', tag: 'Sao đỏ', x: S.redStar.x, z: S.redStar.z, home: S.redStar });
     this.monitor = this.add('Thầy Minh', { skin: SKINS[1], hair: HAIRS[3], shirt: 0x5b7fa6, pants: 0x333333 }, { role: 'roamer', teacher: true, tag: 'Giám thị', x: 0, z: 12 });
     this.mom = this.add('Mẹ', { teacher: true, hair: HAIRS[0], shirt: 0xe06666 }, { role: 'mom', teacher: true, school: false, x: S.homeSpawn.x - 2.5, z: S.homeSpawn.z + 2 });
-    this.classTeacher = this.list.find((n) => n.role === 'teacher' && n.grade === grade);
+    this.classTeacher = this.list.find((n) => n.role === 'teacher' && n.grade === section);
     this.monitor.wander = true;
   }
 
@@ -71,8 +74,22 @@ export class Npcs {
     this.list.forEach((n) => { n.mesh.visible = n.school ? on : !on; n.hidden = !n.mesh.visible; });
   }
 
+  hideBullies() { for (const b of this.bullies) { b.path = []; b.wander = false; b.mesh.visible = false; b.hidden = true; } }
+  bulliesToYard() {
+    for (const b of this.bullies) {
+      const p = pick(this.W.spots.yardPoints);
+      b.mesh.position.set(p.x, 0, p.z);
+      b.mesh.visible = true;
+      b.hidden = false;
+      b.path = [];
+      b.wander = true;
+    }
+  }
+  classmates() { return this.list.filter((n) => n.role === 'student' && !n.bully); }
+
   seatAll() {
-    for (const n of this.students()) {
+    this.hideBullies();
+    for (const n of this.classmates()) {
       n.path = [];
       n.wander = false;
       n.mesh.visible = true;
@@ -94,7 +111,8 @@ export class Npcs {
   }
 
   toYard() {
-    for (const n of this.students()) {
+    this.bulliesToYard();
+    for (const n of this.classmates()) {
       const d = this.W.classDoors[n.grade];
       n.mesh.userData.sitting = false;
       n.path = [d.inside, d.outside, pick(this.W.spots.yardPoints)];
@@ -105,7 +123,8 @@ export class Npcs {
 
   // spread students around the yard immediately (used when arriving before the bell)
   scatterYard() {
-    for (const n of this.students()) {
+    this.bulliesToYard();
+    for (const n of this.classmates()) {
       const p = pick(this.W.spots.yardPoints);
       n.mesh.position.set(p.x, 0, p.z);
       n.mesh.userData.sitting = false;
@@ -118,7 +137,8 @@ export class Npcs {
   }
 
   toClass() {
-    for (const n of this.students()) {
+    this.hideBullies();
+    for (const n of this.classmates()) {
       const d = this.W.classDoors[n.grade];
       n.mesh.userData.sitting = false;
       n.mesh.visible = true;
@@ -131,7 +151,8 @@ export class Npcs {
   }
 
   leaveSchool() {
-    for (const n of this.students()) {
+    this.hideBullies();
+    for (const n of this.classmates()) {
       n.mesh.userData.sitting = false;
       const d = this.W.classDoors[n.grade];
       if (Math.random() < 0.55) {

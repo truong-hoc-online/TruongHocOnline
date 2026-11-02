@@ -1,5 +1,5 @@
 // Offline cache. BUMP `VERSION` WHENEVER ANY FILE CHANGES, otherwise installed apps keep the old files.
-const VERSION = 'tho-v3';
+const VERSION = 'tho-v4';
 const FILES = [
   './', 'index.html', 'style.css', 'manifest.webmanifest', 'icon.svg',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png',

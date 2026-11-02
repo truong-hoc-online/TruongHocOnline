@@ -60,6 +60,7 @@ export function buildWorld(scene) {
     mesh.position.set(x, y, z);
     mesh.rotation.y = rotY;
     root.add(mesh);
+    return mesh;
   }
   // Rectangular room. doors: [{ side: 'n'|'s'|'e'|'w', at, w, rule }]. South wall is see-through.
   function room(x0, z0, x1, z1, { h = 2.4, color = 0xf1e3c6, doors = [], floorColor = 0xd8c3a0 } = {}) {
@@ -135,13 +136,14 @@ export function buildWorld(scene) {
   W.spots.gateInside = { x: 0, z: 25.5 };
   hotspot('gate', 0, 26.6, 2.2);
 
-  // ---------- classrooms (north row) ----------
-  const grades = [6, 7, 8, 9];
-  grades.forEach((g, i) => {
+  // ---------- classrooms (north row): the 4 classes A1–A4 of the player's grade ----------
+  const classSigns = [];
+  const classZones = [];
+  [1, 2, 3, 4].forEach((g, i) => {
     const x0 = -34 + i * 10, x1 = x0 + 10, z0 = -26, z1 = -14;
     const doorX = x1 - 1.3;
     room(x0, z0, x1, z1, { doors: [{ side: 's', at: doorX, w: 1.8 }], color: 0xf6e7c8, floorColor: 0xe8d9b5 });
-    sign(`Lớp ${g}A`, (x0 + x1) / 2, 2.9, z1 + 0.2, 0, { bg: '#2e7d32' });
+    classSigns.push(sign(`Lớp 6A${g}`, (x0 + x1) / 2, 2.9, z1 + 0.2, 0, { bg: '#2e7d32' }));
     box(x0 + 2, z0 + 0.15, x1 - 2, z0 + 0.3, 1.3, 0x2d4a3e, { y: 0.9, collide: false }); // blackboard
     box(x0 + 3.8, z0 + 1.4, x0 + 6.2, z0 + 2.2, 0.8, 0x9b6b3d); // teacher desk
     W.spots[`teacher${g}`] = { x: (x0 + x1) / 2, z: z0 + 2.9 };
@@ -155,8 +157,18 @@ export function buildWorld(scene) {
     });
     W.seats[g] = seats;
     W.classDoors[g] = { inside: { x: doorX, z: z1 - 1 }, outside: { x: doorX, z: z1 + 1.4 } };
-    zone(`class${g}`, `Lớp ${g}A`, x0, z0, x1, z1, { quiet: true, grade: g });
+    zone(`class${g}`, `Lớp 6A${g}`, x0, z0, x1, z1, { quiet: true, sec: g });
+    classZones.push(W.zones[W.zones.length - 1]);
   });
+  // rename the class rooms after a promotion (signs + zone names)
+  W.setGrade = (grade) => {
+    classSigns.forEach((s, i) => {
+      s.material.map.dispose();
+      s.material.map = textTexture(`Lớp ${grade}A${i + 1}`, { bg: '#2e7d32' });
+      s.material.needsUpdate = true;
+    });
+    classZones.forEach((z, i) => { z.name = `Lớp ${grade}A${i + 1}`; });
+  };
   floor(-34, -14, 22, -12, 0xb0bec5, 0.012); // corridor
 
   // ---------- library ----------

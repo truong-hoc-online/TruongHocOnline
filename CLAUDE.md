@@ -100,7 +100,7 @@ Mới nhất ở trên.
 
 - **2026-11-03 · máy bàn (tiếp)** — Người dùng muốn chia việc để nhờ người/agent làm → viết `SEGMENTS.md`: luật chung
   (nhánh mỗi segment, không tăng `VERSION` trong nhánh, một segment đổi save mỗi lúc), bản đồ xung đột (`game.js`),
-  thứ tự đợt, 6 việc của người + 18 segment code. Phát hiện script test chỉ nằm ở scratchpad → segment S0.
+  thứ tự đợt, 6 việc của người + 20 segment code. Phát hiện script test chỉ nằm ở scratchpad → segment S0.
 
 - **2026-11-03 · máy bàn** — Lên kế hoạch phiên từ CLAUDE.md. Repo đã push nhưng private → hướng dẫn public + bật
   Pages (lần đầu 404 vì đang build). Người dùng chơi được trên điện thoại, yêu cầu 6 ý (nhịp 6 giờ + giặt 15 phút +

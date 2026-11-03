@@ -1,0 +1,17 @@
+{
+  "id": "goi-hong",
+  "name": "Gói mod hỏng (mẫu để test)",
+  "author": "nguoi.lam.mod@example.com",
+  "version": 1,
+  "items": [
+    { "id": "hu-tieu", "type": "food", "where": "home", "name": "Hủ tiếu đặc biệt", "icon": "🍜", "price": 9999, "energy": 30 },
+    { "id": "kem-que", "type": "food", "where": "canteen", "name": "Kem que", "icon": "🍦", "price": 5,
+      "desc": "Mua thêm ở www.kem-que-ngon.com nhé!" },
+    { "id": "sung-to", "type": "toy", "name": "Súng to", "icon": "🔫", "price": 20, "verb": "Xịt", "fx": { "kind": "spray", "color": "#4fc3f7" },
+      "lines": ["Gọi tui 0912 345 678 nha", "vcl ướt hết rồi"] },
+    { "id": "Sai-Id", "type": "food", "name": "Id viết hoa" },
+    { "id": "may-bay", "type": "rocket", "name": "Loại đồ không có" },
+    { "id": "kem-que", "type": "food", "name": "Trùng id" },
+    { "id": "mu-la", "type": "accessory", "kind": "crown", "name": "Vương miện" }
+  ]
+}

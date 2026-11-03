@@ -152,7 +152,10 @@ async function launch() {
     '--headless=new', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
     '--remote-debugging-port=0', `--user-data-dir=${profile}`,
     '--no-first-run', '--no-default-browser-check', '--disable-extensions', '--disable-sync',
-    '--autoplay-policy=no-user-gesture-required', `--window-size=${W},${H}`, 'about:blank',
+    '--autoplay-policy=no-user-gesture-required', `--window-size=${W},${H}`,
+    // Linux CI (GitHub ubuntu runner, google-chrome): the sandbox needs user namespaces the runner may not allow.
+    ...(process.platform === 'linux' ? ['--no-sandbox', '--disable-dev-shm-usage'] : []),
+    'about:blank',
   ], { stdio: 'ignore' });
   const portFile = path.join(profile, 'DevToolsActivePort');
   let port = 0;
@@ -571,7 +574,11 @@ try { await cdp?.send('Browser.close'); } catch { /* ignore */ }
 cdp?.close();
 await sleep(500);
 if (edge && edge.exitCode === null) {
-  try { execFileSync('taskkill', ['/PID', String(edge.pid), '/T', '/F'], { stdio: 'ignore' }); } catch { /* already gone */ }
+  if (process.platform === 'win32') {
+    try { execFileSync('taskkill', ['/PID', String(edge.pid), '/T', '/F'], { stdio: 'ignore' }); } catch { /* already gone */ }
+  } else {
+    try { edge.kill('SIGKILL'); } catch { /* already gone */ }
+  }
 }
 await sleep(300);
 try { rmSync(profile, { recursive: true, force: true }); } catch { /* Edge may still hold files */ }

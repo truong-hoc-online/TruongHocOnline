@@ -35,6 +35,19 @@ node tests\e2e.mjs tests\out\thu 390 844 iphone
 | `unit.mjs` | `validatePack` với `mods/base.json` + pack "phá" (HTML, giá âm, trường lạ, trùng id, kind/fx lạ, không phải object); `loadCatalog`; ví coco (giới hạn 40/ngày, thiếu tiền, số âm, mua, sổ cái ≤100 dòng) |
 | `e2e.mjs` | Chơi thật trong Edge headless qua CDP (`?debug` → `window.__g`): mod → cửa hàng → đeo mũ → ăn sáng bằng coco → mang đồ chơi → 6 tiết + chọc bạn (lần 2 bị mách, trong lớp không chọc được, bị sao đỏ tịch thu) → tự do → hộp thư góp ý → đồ dơ bị bắt 1 lần → vùng cấm nói + lọc từ tục → hết 6 giờ → tổng kết → 6A1→6A2 → giặt đồ / bộ dự phòng → xong A4 lên 7A1 → đóng game quá 6 giờ → vào lại giữa buổi → migrate save v1→v3 → service worker có mods → không lỗi console |
 
+## Trên GitHub (CI)
+
+`.github/workflows/test.yml` chạy mỗi push / Pull Request trên ubuntu-latest: fuzz (500 lần), unit, công cụ câu hỏi,
+kiểm mod, test RLS Supabase, và E2E 3 cỡ bằng **Chrome** của runner:
+
+```
+EDGE_PATH=/usr/bin/google-chrome E2E_URL=http://localhost:8081/?debug node tests/e2e.mjs tests/out/390x844 390 844
+```
+
+`e2e.mjs` nhận mọi trình duyệt Chromium qua `EDGE_PATH` (Edge, Chrome). Trên Linux tự thêm `--no-sandbox
+--disable-dev-shm-usage` và tắt trình duyệt bằng `kill` thay `taskkill`. Ảnh chụp của CI nằm ở mục Artifacts
+(`e2e-screenshots`). Chi tiết các bước: `tools/README.md`, mục "CI trên GitHub".
+
 ## Lưu ý
 
 - E2E dùng một hồ sơ Edge mới trong thư mục tạm mỗi lần chạy, nên localStorage luôn trống lúc bắt đầu.

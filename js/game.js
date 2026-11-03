@@ -10,6 +10,7 @@ import { loadCatalog } from './items.js';
 import * as eco from './economy.js';
 import { openFeedback, flushOutbox } from './feedback.js';
 import { GAME_VERSION } from './config.js';
+import * as cloud from './cloud.js';
 
 const TOUCH = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
 if (TOUCH) document.body.classList.add('touch');
@@ -120,9 +121,22 @@ function firstOpenSection(progress) {
   const g = CLASS_GROUPS.find((c) => c.subjects.some((id) => (progress[id] ?? 0) < POINTS_TO_PASS));
   return g ? g.sec : 4;
 }
-function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch { /* storage unavailable */ } }
+let movedAway = false; // progress was moved to another device (transfer code)
+function save() {
+  if (movedAway) return;
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch { /* storage unavailable */ }
+  cloud.scheduleSave(state); // online backup (debounced); no-op without a backend
+}
 function load() { try { return migrate(JSON.parse(localStorage.getItem(SAVE_KEY))); } catch { return null; } }
-addEventListener('visibilitychange', () => { if (document.hidden && state) save(); }); // phones close apps without warning
+addEventListener('visibilitychange', () => { // phones close apps without warning
+  if (!document.hidden || !state || movedAway) return;
+  save();
+  cloud.scheduleSave(state, true);
+  cloud.syncCoco(state);
+});
+eco.setSink(cloud.queueCoco); // every coco change is replayed on the server wallet when online
+cloud.initCloud({ onTransferredAway });
+setInterval(() => { if (state && !document.hidden && !movedAway) cloud.syncCoco(state); }, 60_000);
 
 const has = (tag) => state.tags.includes(tag);
 function addStat(k, d) {
@@ -157,9 +171,18 @@ let CATALOG = { packs: [], items: new Map(), errors: [] };
 const catalogReady = loadCatalog().then((c) => {
   CATALOG = c;
   if (c.errors.length) console.warn('[mods]', c.errors);
+  // online: the server price list wins (the admin page can change prices or switch items off)
+  cloud.shopPrices().then((prices) => {
+    if (!prices) return;
+    for (const [id, it] of CATALOG.items) {
+      const p = prices.get(id);
+      if (p) { it.price = p.price; it.off = !p.enabled; } // off: not sold any more, owned copies still work
+    }
+  });
 });
 const item = (id) => CATALOG.items.get(id);
 const itemsOf = (type, where) => [...CATALOG.items.values()].filter((i) => i.type === type && (!where || i.where === where));
+const forSale = (type, where) => itemsOf(type, where).filter((i) => !i.off);
 const owned = (id) => (state.inv[id] ?? 0) > 0;
 function shirtColor() {
   const t = state.today;
@@ -864,7 +887,7 @@ const effTxt = (f) => [f.energy ? `⚡${f.energy > 0 ? '+' : ''}${f.energy}` : '
 
 async function homeTable() {
   const t = state.today;
-  const foods = itemsOf('food', 'home').sort((a, b) => a.price - b.price);
+  const foods = forSale('food', 'home').sort((a, b) => a.price - b.price);
   const v = await ask('🍚 Bàn ăn', `<p>${t.breakfast ? 'Bạn đã ăn sáng rồi.' : 'Ăn sáng gì đây? Cơm trắng mẹ nấu thì miễn phí.'}</p><p class="meta">Bạn có ${state.coco} 🥥</p>`, [
     ...foods.map((f) => ({ label: `${f.icon} ${f.name} — ${cocoTxt(f.price)} (${effTxt(f)})`, value: f.id, disabled: t.breakfast || state.coco < f.price })),
     { label: `🍱 Cất hộp đồ ăn vào cặp${t.lunchbox ? ' — đã lấy' : ''}`, value: 'box', disabled: t.lunchbox },
@@ -872,7 +895,7 @@ async function homeTable() {
   ]);
   if (v === 'box') { t.lunchbox = true; toast('🍱 Đã mang đồ ăn'); return; }
   const f = v && item(v);
-  if (!f || !eco.spend(state, f.price, `ăn ${f.id}`)) return;
+  if (!f || !eco.spend(state, f.price, `ăn ${f.id}`, f.id)) return;
   t.breakfast = true;
   addStat('energy', f.energy);
   addStat('mood', f.mood);
@@ -942,7 +965,7 @@ async function shop() {
       { label: 'Đóng', value: null, cls: 'ghost' },
     ]);
     if (!c) return;
-    const list = itemsOf(c).sort((a, b) => a.price - b.price);
+    const list = forSale(c).sort((a, b) => a.price - b.price);
     const have = (i) => (i.type === 'accessory' ? owned(i.id) : false);
     const desc = (i) => (i.type === 'toy' ? ` · ${i.uses} lần dùng` : i.type === 'uniform' ? ` · +${i.count} bộ` : '');
     const id = await ask(cats[c], `<p>Bạn có <b>${state.coco} 🥥</b>.</p>${list.filter((i) => i.desc).map((i) => `<p class="meta">${esc(i.icon)} <b>${esc(i.name)}</b>: ${esc(i.desc)}</p>`).join('')}
@@ -1114,7 +1137,7 @@ async function quizFor(id, n, where, mult = 1) {
 
 async function canteen() {
   const p = state.phase;
-  const foods = itemsOf('food', 'canteen').sort((a, b) => a.price - b.price);
+  const foods = forSale('food', 'canteen').sort((a, b) => a.price - b.price);
   const v = await ask('🥖 Căng tin', `<p>Bạn có ${state.coco} 🥥.</p>`, [
     ...foods.map((f) => ({ label: `${f.icon} ${f.name} — ${cocoTxt(f.price)} (${effTxt(f)})`, value: f.id, disabled: state.coco < f.price })),
     ...(p === 'after' ? [{ label: '🍧 Ngồi ăn vặt với bạn — 10 🥥 (lêu lổng)', value: 'snack', disabled: state.coco < 10 }] : []),
@@ -1122,7 +1145,7 @@ async function canteen() {
   ]);
   if (v === 'snack') { if (eco.spend(state, 10, 'ăn vặt')) await loiter('🍧 Ăn vặt với bạn', 12, 5, 0); return; }
   const f = v && item(v);
-  if (!f || !eco.spend(state, f.price, `căng tin ${f.id}`)) return;
+  if (!f || !eco.spend(state, f.price, `căng tin ${f.id}`, f.id)) return;
   addStat('energy', f.energy);
   addStat('mood', f.mood);
   toast(`${f.icon} ${f.name}: ${effTxt(f)}`);
@@ -1320,6 +1343,69 @@ $('btnTags').onclick = () => {
   ask('🏷️ Danh hiệu (tag)', rows, [{ label: 'Đóng', value: 1 }]);
 };
 $('btnMail').onclick = () => { if (!ui.modalOpen && !busy && state) { busy = true; mailbox().finally(() => { busy = false; }); } };
+$('btnRank').onclick = () => { if (!ui.modalOpen && !busy && state) { busy = true; rankAndTransfer().finally(() => { busy = false; }); } };
+
+// ---------------- online: leaderboard + move progress to another device ----------------
+async function rankAndTransfer(scope = 'school') {
+  const rows = await cloud.leaderboard(scope === 'school' ? state.school : null);
+  const list = rows
+    ? rows.map((r) => `<div class="rankRow${r.is_me ? ' me' : ''}"><b>${r.rank}</b><span>${esc(r.display_name)}${scope === 'all' ? ` <small>${esc(r.school)}</small>` : ''}</span><span>${r.grade}A${r.section}</span><span>${r.score}</span></div>`).join('') || '<p>Chưa có ai.</p>'
+    : '<p>Không kết nối được máy chủ. Thử lại sau nhé.</p>';
+  const v = await ask(scope === 'school' ? `🏆 Xếp hạng ${esc(state.school)}` : '🏆 Xếp hạng tất cả các trường',
+    `<p class="meta">Điểm = mỗi khối đã xong 60 + điểm các môn ở khối đang học.</p><div class="rank">${list}</div>`, [
+      { label: scope === 'school' ? '🌏 Tất cả các trường' : `🏫 ${state.school}`, value: scope === 'school' ? 'all' : 'school' },
+      { label: '📲 Chuyển sang máy khác', value: 'transfer' },
+      { label: 'Đóng', value: null, cls: 'ghost' },
+    ]);
+  if (v === 'all' || v === 'school') return rankAndTransfer(v);
+  if (v === 'transfer') return giveTransferCode();
+}
+
+async function giveTransferCode() {
+  const ok = await ask('📲 Chuyển sang máy khác', `<p>Game sẽ tạo một <b>mã 8 chữ</b>. Nhập mã đó trên máy mới (hoặc trên app vừa cài) để mang theo toàn bộ tiến độ và coco.</p>
+    <p class="meta">Sau khi máy mới nhận mã, máy này sẽ bắt đầu lại từ đầu. Đừng đưa mã cho người khác.</p>`, [
+    { label: 'Tạo mã', value: true },
+    { label: 'Thôi', value: false, cls: 'ghost' },
+  ]);
+  if (!ok) return;
+  save();
+  const r = await cloud.createTransferCode(state);
+  if (r.error) { toast('Không kết nối được máy chủ. Thử lại sau nhé.', 3000); return; }
+  await ask('📲 Mã chuyển máy', `<p class="bigCode">${esc(r.code)}</p>
+    <p>Trên máy mới: mở game → <b>📲 Nhập mã chuyển máy</b> → nhập mã này. Mã dùng được <b>15 phút</b>, một lần.</p>`, [{ label: 'Xong', value: 1 }]);
+}
+
+// Start screen: take over the progress from another device.
+async function claimTransfer() {
+  const hasLocal = !!load();
+  const go = await ask('📲 Nhập mã chuyển máy', `<p>Trên máy cũ: bấm 🏆 → <b>📲 Chuyển sang máy khác</b> để lấy mã.</p>
+    <input id="tCode" maxlength="9" autocomplete="off" autocapitalize="characters" placeholder="VD: ABCD2345">
+    ${hasLocal ? '<p class="meta">⚠️ Tiến độ đang có trên máy này sẽ bị thay bằng tiến độ từ máy cũ.</p>' : ''}`, [
+    { label: 'Nhận tiến độ', value: true },
+    { label: 'Thôi', value: false, cls: 'ghost' },
+  ]);
+  const code = document.getElementById('tCode')?.value || '';
+  if (!go) return;
+  const r = await cloud.claimTransferCode(code);
+  if (r.error) {
+    toast({ invalid: 'Mã không đúng hoặc đã hết hạn.', 'same-device': 'Đây là mã của chính máy này.', 'too-many': 'Thử sai nhiều quá, đợi 1 tiếng nhé.', offline: 'Game chưa kết nối máy chủ.' }[r.error] || 'Không kết nối được máy chủ. Thử lại sau nhé.', 3500);
+    return;
+  }
+  const s = migrate(r.save);
+  if (!s) { toast('Tiến độ nhận được bị lỗi.', 3500); return; }
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch { /* ignore */ }
+  toast('✅ Đã nhận tiến độ!', 2000);
+  setTimeout(() => location.reload(), 1200);
+}
+
+// This device's progress was claimed by another device: start over here.
+function onTransferredAway() {
+  movedAway = true; // stop save() from writing the old progress back
+  try { localStorage.removeItem(SAVE_KEY); } catch { /* ignore */ }
+  ask('📲 Đã chuyển máy', '<p>Tiến độ của bạn đã được chuyển sang máy khác. Máy này sẽ quay về màn hình bắt đầu.</p>', [{ label: 'OK', value: 1 }])
+    .then(() => location.reload());
+}
+
 $('btnSound').onclick = () => { ui.soundOn = !ui.soundOn; $('btnSound').textContent = ui.soundOn ? '🔊' : '🔇'; };
 $('btnHelp').onclick = () => { if (!ui.modalOpen) showHelp(); };
 function showHelp() {
@@ -1525,6 +1611,8 @@ async function begin(fresh) {
   if (!state.today) state.today = newToday();
   await catalogReady;
   flushOutbox();
+  cloud.syncCoco(state);
+  $('btnRank').hidden = !cloud.enabled();
   respawnNpcs();
   makePlayer();
   if (fresh) await showHelp();
@@ -1551,6 +1639,8 @@ if (saved) {
   $('continueInfo').innerHTML = `<b>${esc(saved.name)}</b> · ${esc(saved.school)} · Lớp ${saved.grade}A${saved.section} · Ngày ${saved.day}`;
 }
 $('btnContinue').onclick = () => { state = saved; begin(false); };
+$('btnTransferIn').hidden = !cloud.enabled();
+$('btnTransferIn').onclick = () => { if (!ui.modalOpen) claimTransfer(); };
 $('btnReset').onclick = async () => {
   if (!confirm('Xoá tiến độ và chơi lại từ đầu?')) return;
   try { localStorage.removeItem(SAVE_KEY); } catch { /* ignore */ }

@@ -1,7 +1,8 @@
 // Feedback mailbox 📮: players report a wrong question, a place where they got stuck, or any bug.
 // Without a backend the reports wait in a local outbox; with Supabase configured (js/config.js) they are
 // inserted into the `feedback` table (insert-only for players via RLS) and the outbox is flushed.
-import { BACKEND, GAME_VERSION } from './config.js';
+import { GAME_VERSION } from './config.js';
+import { enabled, rest } from './backend.js';
 import { ask, esc, toast } from './ui.js';
 
 const OUTBOX = 'tho-feedback-outbox';
@@ -17,16 +18,13 @@ function readOutbox() { try { return JSON.parse(localStorage.getItem(OUTBOX)) ||
 function writeOutbox(list) { try { localStorage.setItem(OUTBOX, JSON.stringify(list.slice(-MAX_OUTBOX))); } catch { /* ignore */ } }
 export const pendingCount = () => readOutbox().length;
 
+// Sent as the anonymously signed-in player (the table is insert-only and rate-limited per player).
 async function send(report) {
-  if (!BACKEND.supabaseUrl || !BACKEND.supabaseAnonKey) return false;
-  try {
-    const res = await fetch(`${BACKEND.supabaseUrl}/rest/v1/feedback`, {
-      method: 'POST',
-      headers: { apikey: BACKEND.supabaseAnonKey, Authorization: `Bearer ${BACKEND.supabaseAnonKey}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-      body: JSON.stringify(report),
-    });
-    return res.ok;
-  } catch { return false; }
+  if (!enabled()) return false;
+  const res = await rest('feedback', { method: 'POST', body: report, headers: { Prefer: 'return=minimal' } });
+  if (res?.ok) return true;
+  // a report the server will never accept (invalid data) is dropped; rate limit / network errors are retried later
+  return !!res && res.status >= 400 && res.status < 500 && ![401, 403].includes(res.status) && !/too many/.test(JSON.stringify(res.data));
 }
 
 // Try to deliver everything waiting in the outbox (called after each report and on startup).

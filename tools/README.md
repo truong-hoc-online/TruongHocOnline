@@ -1,7 +1,7 @@
-# Công cụ duyệt câu hỏi (segment A1 + Q2)
+# Công cụ: duyệt câu hỏi (segment A1 + Q2), kiểm mod + CI (A5)
 
-Hai script Node (Node 24, không cần `npm install`) để giáo viên duyệt ngân hàng câu hỏi `BANK` trong
-`js/subjects.js` bằng Excel / Google Sheets rồi nhập lại vào game. Chạy từ thư mục gốc repo.
+Script Node (Node 24, không cần `npm install`), chạy từ thư mục gốc repo. Mục 1–3: giáo viên duyệt ngân hàng câu hỏi
+`BANK` trong `js/subjects.js` bằng Excel / Google Sheets rồi nhập lại vào game. Mục 4: kiểm tra pack mod. Cuối: CI.
 
 ## 1. Xuất cho giáo viên — `export-questions.mjs`
 
@@ -60,6 +60,36 @@ node tools/test-roundtrip.mjs
 Làm trên bản sao tạm, không đụng `js/subjects.js` thật: xuất → nhập lại không đổi (BANK giống hệt về nội dung và
 từng byte) → file phân cách `;` → mô phỏng giáo viên duyệt (Đ, Sửa, Xoá, S, Mới, sửa sai luật, đổi lớp).
 
+## 4. Kiểm tra mod — `check-mod.mjs` (segment A5)
+
+```
+node tools/check-mod.mjs <pack.json | https://raw.githubusercontent.com/.../pack.json> [pack khác...]
+node tools/test-check-mod.mjs     # tự kiểm: fixtures/bad-pack.json phải bị báo lỗi, mods/*.json phải đạt
+```
+
+- Chạy `validatePack` của game (import `js/items.js`) rồi kiểm thêm nội dung: link / tên miền, e-mail, dãy ≥ 9 chữ
+  số (số điện thoại), từ cấm, giá > 500, id pack đã có ở `mods/`, tên file không đúng `[a-z0-9-]+.json` → **LỖI**,
+  mã thoát 1. Link chỉ nhận `https://`.
+- **CẢNH BÁO** (mã thoát 0): id món trùng `mods/base.json`; pack chưa có trong `mods/index.json` hoặc `FILES` của
+  `sw.js`.
+- In mọi chữ người chơi thấy (tên, mô tả, icon, nút, câu thoại) để người duyệt đọc theo `MODDING.md`; nhắc chạy
+  `node supabase/gen-seed.mjs`.
+- Danh sách từ cấm là **bản chép** `BAD_WORDS` trong `js/game.js` (không import được game.js trong Node): sửa một chỗ
+  thì sửa cả chỗ kia.
+- `fixtures/bad-pack.json`: pack hỏng có chủ ý (id sai, type lạ, trùng id, kind lạ, e-mail, link, số điện thoại, từ
+  cấm, giá 9999) — dùng cho `test-check-mod.mjs` trong CI.
+
+## CI trên GitHub — `.github/workflows/test.yml`
+
+Mỗi push và Pull Request (ubuntu-latest, Node 24) chạy 2 job:
+
+- **checks:** `node --check` mọi file JS → fuzz câu hỏi (500 lần) → `tests/unit.mjs` → `tools/test-roundtrip.mjs` →
+  `check-mod` trên mọi `mods/*.json` (trừ `index.json`) → `test-check-mod.mjs` → `supabase/seed.sql` khớp
+  `gen-seed.mjs` → `supabase/tests` (`npm ci` + `node rls.test.mjs`).
+- **e2e:** `python -m http.server 8081` + `tests/e2e.mjs` ở 3 cỡ bằng Chrome headless có sẵn trên runner
+  (`EDGE_PATH=/usr/bin/google-chrome`). Ảnh chụp + `results.json` tải về ở mục Artifacts của lần chạy
+  (`e2e-screenshots`).
+
 ## File
 
 | File | Vai trò |
@@ -68,5 +98,7 @@ từng byte) → file phân cách `;` → mô phỏng giáo viên duyệt (Đ, S
 | `import-questions.mjs` | Nhập CSV đã duyệt |
 | `questions-lib.mjs` | Dùng chung: đọc/ghi CSV, tìm và ghi `BANK`, kiểm tra câu hỏi |
 | `test-roundtrip.mjs` | Kiểm tra hai công cụ |
+| `check-mod.mjs` | Kiểm tra pack mod trước khi nhận vào `mods/` |
+| `test-check-mod.mjs`, `fixtures/bad-pack.json` | Kiểm tra `check-mod.mjs` (pack hỏng mẫu phải bị báo lỗi) |
 | `HUONG-DAN-DUYET.md` | Hướng dẫn gửi kèm cho giáo viên |
 | `package.json` | `{"type":"module"}` cho thư mục `tools/` |

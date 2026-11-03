@@ -24,10 +24,23 @@ Hiện làm được 4 loại đồ: **đồ ăn**, **đồng phục dự phòng
 }
 ```
 
-3. Thử trên máy: thêm tên file vào [`mods/index.json`](mods/index.json), chạy `chay.bat`, rồi mở game với `?debug`.
+3. **Kiểm tra pack** (cần Node 24, chạy ở thư mục gốc repo):
+
+   ```
+   node tools/check-mod.mjs mods/an-vat-mien-tay.json
+   ```
+
+   Công cụ dùng đúng bộ kiểm tra của game (`validatePack`) và báo thêm: đường link / tên miền, e-mail, dãy số giống
+   số điện thoại, từ tục (cùng danh sách lọc chat của game), giá trên 500 coco, id pack đã có, tên file sai. Có
+   **LỖI** thì sửa cho hết (mã thoát 1). **CẢNH BÁO** (id món trùng đồ gốc, chưa có trong `mods/index.json` /
+   `sw.js`) không chặn, nhưng nên đọc. Cuối cùng nó in **mọi chữ người chơi sẽ thấy** (tên, mô tả, icon, chữ trên nút,
+   câu bạn bị chọc nói): đọc lại theo mục [Nội dung được duyệt](#nội-dung-được-duyệt). Kiểm được cả link raw trên
+   GitHub: `node tools/check-mod.mjs https://raw.githubusercontent.com/<người>/<repo>/<nhánh>/mods/<file>.json`.
+4. Thử trong game: thêm tên file vào [`mods/index.json`](mods/index.json), chạy `chay.bat`, rồi mở game với `?debug`.
    Mở Console (F12) và gõ `__g.catalog.errors` để xem lỗi, nếu có.
-4. Gửi mod: tạo Pull Request trên GitHub, chỉ thêm file JSON của bạn. Người quản lý game **duyệt nội dung** rồi mới
-   thêm tên file vào `mods/index.json`.
+5. Gửi mod: tạo Pull Request trên GitHub, chỉ thêm file JSON của bạn. **GitHub Actions tự chạy `check-mod`** trên mọi
+   file trong `mods/`: pack có lỗi làm PR báo đỏ (❌). Người quản lý game **duyệt nội dung** rồi mới thêm tên file vào
+   `mods/index.json` và `FILES` của `sw.js`, rồi chạy `node supabase/gen-seed.mjs` (cửa hàng trên server).
 
 ## Quy định chung
 
@@ -83,4 +96,6 @@ Game có học sinh nhỏ tuổi chơi. Mod **sẽ bị từ chối** nếu có:
 - Game chỉ đọc các pack có tên trong `mods/index.json` (tên file chỉ gồm chữ thường, số, gạch ngang, đuôi `.json`).
 - App cài trên điện thoại chạy offline nhờ service worker. Khi thêm pack mới, người quản lý phải thêm file vào
   `FILES` trong `sw.js` và tăng `VERSION`.
-- Bộ kiểm tra nằm ở [`js/items.js`](js/items.js) (`validatePack`).
+- Bộ kiểm tra nằm ở [`js/items.js`](js/items.js) (`validatePack`); công cụ dòng lệnh: [`tools/check-mod.mjs`](tools/check-mod.mjs).
+- Thêm đồ vào pack đã có trong `mods/index.json` → chạy `node supabase/gen-seed.mjs` và commit `supabase/seed.sql`
+  (CI báo đỏ nếu `seed.sql` cũ).

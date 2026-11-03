@@ -1,0 +1,117 @@
+# CI for Trường Học Online (segment A5). Same tests as tests/run-all.ps1 on Windows, plus the question tools,
+# the Supabase RLS tests and the mod checker. A pull request with a broken mod in mods/ turns red here.
+name: test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: fuzz + unit + tools + mods + supabase
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Syntax check (node --check)
+        run: |
+          set -e
+          tmp="$(mktemp -d)"
+          for f in js/*.js sw.js; do
+            cp "$f" "$tmp/$(basename "$f" .js).mjs"
+            node --check "$tmp/$(basename "$f" .js).mjs"
+          done
+          for f in tests/*.mjs tools/*.mjs supabase/*.mjs supabase/tests/*.mjs; do node --check "$f"; done
+
+      - name: Fuzz questions
+        run: node tests/fuzz-questions.mjs 500
+
+      - name: Unit tests (mods + coco wallet)
+        run: node tests/unit.mjs
+
+      - name: Question tools round trip
+        run: node tools/test-roundtrip.mjs
+
+      - name: Check every mod pack in mods/
+        run: |
+          set -e
+          packs=()
+          for f in mods/*.json; do
+            [ "$f" = "mods/index.json" ] && continue
+            packs+=("$f")
+          done
+          node tools/check-mod.mjs "${packs[@]}"
+
+      - name: Mod checker self-test (broken sample pack must fail)
+        run: node tools/test-check-mod.mjs
+
+      - name: Supabase seed is up to date with mods/
+        run: |
+          node supabase/gen-seed.mjs
+          git diff --exit-code supabase/seed.sql || { echo "::error::supabase/seed.sql is out of date: run node supabase/gen-seed.mjs and commit"; exit 1; }
+
+      - name: Supabase RLS tests (PGlite)
+        working-directory: supabase/tests
+        run: |
+          npm ci
+          node rls.test.mjs
+
+  e2e:
+    name: e2e (headless Chrome, 3 sizes)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Start static server
+        run: |
+          python -m http.server 8081 > /tmp/http.log 2>&1 &
+          for i in $(seq 1 50); do
+            curl -sf http://localhost:8081/sw.js > /dev/null && exit 0
+            sleep 0.2
+          done
+          echo "::error::http.server did not start"; cat /tmp/http.log; exit 1
+
+      - name: E2E 1280x720
+        env:
+          EDGE_PATH: /usr/bin/google-chrome
+          E2E_URL: http://localhost:8081/?debug
+        run: node tests/e2e.mjs tests/out/1280x720 1280 720
+
+      - name: E2E 390x844
+        if: ${{ !cancelled() }}
+        env:
+          EDGE_PATH: /usr/bin/google-chrome
+          E2E_URL: http://localhost:8081/?debug
+        run: node tests/e2e.mjs tests/out/390x844 390 844
+
+      - name: E2E iPhone emulation
+        if: ${{ !cancelled() }}
+        env:
+          EDGE_PATH: /usr/bin/google-chrome
+          E2E_URL: http://localhost:8081/?debug
+        run: node tests/e2e.mjs tests/out/iphone 390 844 iphone
+
+      - name: Upload screenshots + results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots
+          path: tests/out/
+          if-no-files-found: ignore

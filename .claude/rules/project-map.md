@@ -4,14 +4,36 @@
 E:\TruongHocOnline\
   index.html               HUD, màn tạo nhân vật, modal, bảng cài (#install), nút 💬 (#btnChat), 📮 (#btnMail)
   style.css                token màu :root + dark mode; khối `body.touch` = bố cục cảm ứng; bottom sheet cài app
-  js\game.js               vòng lặp, input (phím, cần điều khiển, chạm-để-đi, chụm 2 ngón), camera, va chạm +
-                           RULES (cửa khoá theo tag/giai đoạn), phiên 6 giờ thật (home → school → after), giặt đồ
-                           15 phút thật, sao đỏ/giám thị bắt đồ dơ (patrolTick), chuyển lớp A1→A4 + lên lớp
-                           (finishSession, checkPromotion), xét tag, chat + vùng cấm nói + lọc từ tục, bắt nạt,
-                           lưu localStorage (key `truong-hoc-online-v1`, định dạng `state.v = 3`, migrate() v1→v2→v3),
-                           coco + cửa hàng + bàn ăn/căng tin/tủ đồ/cặp (đồ từ mods/), chọc bạn (prank, spawnFx),
-                           hộp thư góp ý. ?debug → window.__g (tp, skip, interact, state, today, endSession,
-                           finishWash, catalog, prankTarget, giveCoco)
+  js\game.js               điểm vào: nối các mô-đun (init*), nhãn trên đầu, ánh sáng theo giờ, vòng lặp tick()
+                           (camera, hotspot → nút hành động), màn bắt đầu (begin), ?debug → window.__g (tp, skip,
+                           interact, actionFor, state, sub, sitting, busy, today, endSession, finishWash, catalog,
+                           prankTarget, giveCoco, pos)
+  js\ctx.js                G = trạng thái dùng chung, đổi được từ mọi mô-đun (state, player, meLabel, sub, busy,
+                           sitting, now, camDist, movedAway, prankTarget, classStart/breakStart/preBellUntil,
+                           bullyAt/bullyActive/guardUntil, washNotified, currentAction); TOUCH; tiện ích (pick,
+                           clamp, fmt, mmss, hhmm, has, addStat, conductName, accuracy, subj, cls, isDone)
+  js\stage.js              three.js: renderer, scene, SKY, camera, hemi/sun, W = buildWorld, npcs, ring, camPos
+  js\save.js               lưu localStorage (key `truong-hoc-online-v1`, định dạng `state.v = 3`, migrate() v1→v2→v3),
+                           newState/newToday, save() + cloud.scheduleSave (chặn khi movedAway), initSaveHooks
+                           (visibilitychange)
+  js\session.js            phiên 6 giờ thật (home → school → after), tiết học/ra chơi/tự do, cổng (gateCheck),
+                           tổng kết (finishSession), chuyển lớp A1→A4 + lên lớp (checkPromotion), ôn bài (quizFor),
+                           phaseTick + chatterTick
+  js\laundry.js            đồng phục: laundry() giặt 15 phút thật, shirtColor, sao đỏ/giám thị bắt đồ dơ (patrolTick),
+                           newClassUniforms
+  js\shop.js               catalog đồ (mods/, giá server) + bàn ăn, tủ quần áo, bàn học, 🛒 cửa hàng, cặp, căng tin
+  js\prank.js              chọc bạn (findPrankTarget, prank) + hiệu ứng spawnFx/fxTick
+  js\tags.js               TAGS, evaluateTags, refreshMyTag, renderSpecial (Báo cô, Giữ trật tự), bắt nạt
+                           (bullyEvent, reportTeacher)
+  js\input.js              phím, cần điều khiển, chạm-để-đi, chụm 2 ngón (initInput), moveTick (đi mỗi khung hình)
+  js\player.js             nhân vật người chơi (makePlayer, placePlayer…), respawnNpcs, va chạm + RULES (cửa khoá
+                           theo tag/giai đoạn), zoneAt
+  js\actions.js            hotspot → hành động (actionFor, interact), hộp thư góp ý, lêu lổng, cô tư vấn, thử
+                           thách HSG, họp cán sự
+  js\chat.js               chat + vùng cấm nói + lọc từ tục (cleanText)
+  js\hud.js                dòng mục tiêu (setObjective), updateHud, nút HUD (môn, tag, 📮, 🏆, âm thanh, ❓), showHelp
+  js\online.js             xếp hạng + mã chuyển máy (rankAndTransfer, giveTransferCode, claimTransfer,
+                           onTransferredAway)
   js\items.js              đọc mods/index.json → validatePack(): kiểm kiểu, kẹp số, bỏ trường lạ; id = `<pack>:<id>`
   js\economy.js            ví coco: earn (giới hạn 40/ngày) / spend / lose / buy + sổ cái `state.ledger` (≤100 dòng).
                            Thiết kế để sau chuyển lên server (Supabase) mà giữ nguyên lời gọi

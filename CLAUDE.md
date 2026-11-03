@@ -73,7 +73,7 @@ thì gửi tiếp (SendMessage); phiên mới thì giao agent mới tiếp tục
 | S1 tách `game.js` → 15 module | — | | ✅ gộp `e50974f` |
 | A5 CI (`.github/workflows/test.yml`) + `tools/check-mod.mjs` | — | | ✅ gộp `4d689c5` · CI chưa chạy thật trên GitHub |
 | A7 244 câu AI nháp + 4 đề xuất sửa → `questions/drafts/`, cổng duyệt trong import | — | | ✅ gộp `7e0cffd` · chờ giáo viên |
-| A4 hiệu năng (world/npc/chars) | `a4-hieu-nang` (gốc `ce3bdc4`, trước S1) | 8092 | ⏳ agent đang chạy |
+| A4 hiệu năng: lệnh vẽ 760→315 (−58%), tam giác −40%, gộp mesh tĩnh, chung hình nhân vật, NPC xa >25 m hoạt hình cách khung | — | | ✅ gộp `c423845`, test đủ đạt trên main · còn hook gợi ý: `renderer/scene/camera` vào `__g`, `npcs.focus = player.position`, chế độ bóng nhẹ cho máy yếu, nhãn tên cập nhật mỗi khung |
 | A3 âm thanh nền (WebAudio) | `a3-am-thanh` (gốc `e50974f`) | 8095 | ⏳ agent đang chạy |
 | A2 sự kiện / A6 chat câu có sẵn | (chưa tạo) | | chờ người dùng quyết (P4) |
 

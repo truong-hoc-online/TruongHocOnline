@@ -17,6 +17,14 @@ E:\TruongHocOnline\
                            Thiết kế để sau chuyển lên server (Supabase) mà giữ nguyên lời gọi
   js\feedback.js           hộp thư góp ý: chọn loại → ghi chữ → kèm lớp/vị trí/câu vừa gặp (`ui.lastQ`) → hàng chờ
                            localStorage `tho-feedback-outbox`; có Supabase thì POST /rest/v1/feedback rồi xả hàng chờ
+  js\backend.js            client Supabase tự viết (fetch): đăng nhập ẩn danh, làm mới token (`tho-auth`), rest(), rpc()
+  js\cloud.js              sao lưu save (`saves`), mã chuyển máy, hàng chờ op coco (`tho-coco-ops`) → `coco_apply`,
+                           giá cửa hàng từ server, xếp hạng. Không có backend = no-op
+  supabase\                migrations/*.sql (schema + RLS), seed.sql (sinh bằng gen-seed.mjs từ mods/), tests/
+                           (PGlite, `node rls.test.mjs`), README (cách cài lên project)
+  tests\                   run-all.ps1 → fuzz-questions, unit, e2e × 3 cỡ (xem testing.md)
+  tools\                   export-questions / import-questions (CSV cho giáo viên duyệt), test-roundtrip
+  (repo khác) E:\GitHub\TruongHocOnline-Admin   trang quản trị Next.js xuất tĩnh
   js\config.js             BACKEND { supabaseUrl, supabaseAnonKey } (để trống = offline), GAME_VERSION
   js\world.js              dựng trường (mét, +z = phía cổng) + nhà ở x=200; 4 phòng học = lớp A1–A4 của khối
                            đang học (W.seats/classDoors/teacher theo số lớp 1–4, W.setGrade đổi biển + tên zone);
@@ -34,7 +42,7 @@ E:\TruongHocOnline\
   js\vendor\three.module.min.js   Three.js r160 (MIT, kèm THREE-LICENSE.txt)
   mods\index.json, base.json   danh sách pack + đồ gốc (18 món: 9 đồ ăn, 1 đồng phục, 4 phụ kiện, 4 đồ chơi)
   sw.js                    cache offline — TĂNG `VERSION` mỗi lần sửa BẤT KỲ file nào (+ thêm file mới vào FILES).
-                           Hiện tại: `tho-v5`
+                           Hiện tại: `tho-v6`
   manifest.webmanifest     display fullscreen, orientation any
   _headers                 header cho Cloudflare Pages (sw.js + mods/ no-cache, nosniff, X-Frame-Options…)
   icon.svg, icons\*.png    PNG (192, 512, maskable 512, apple-touch 180) render từ icon.svg bằng Edge headless

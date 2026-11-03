@@ -40,4 +40,10 @@ Trước khi đổi một điều dưới đây, hỏi người dùng: đa số 
 | Góp ý gửi vào **Supabase** (bảng `feedback`), hàng chờ trên máy khi offline — thay Google Form | Người dùng chọn Supabase cho "hộp thư góp ý + duyệt mod"; không cần tài khoản Google, xem được trong trang quản trị |
 | Trang quản trị: Next.js theo mẫu `E:\GitHub\durian-operadmin` (chỉ tham khảo, không sửa repo đó), host cho phép thương mại | Người dùng quen bộ công cụ này |
 | Quy tắc cho Claude tách vào `.claude/rules/` (mỗi file một chủ đề; PWA / mod-kinh tế / kiểm thử nạp theo `paths`) | Người dùng yêu cầu; CLAUDE.md một file quá dài (>200 dòng) |
+| Coco trên server: kiếm ≤40 / **6 giờ trượt** (≤10/lần), mua theo giá server, mất ≤10/lần; số dư cũ trên máy chuyển lên **1 lần, ≤200**; op có `op_id` để gửi lại không cộng 2 lần (2026-11-03, Claude chọn, đã báo người dùng) | Server không tin được bộ đếm "ngày" của máy; 6 giờ = 1 buổi học |
+| Mã chuyển máy 8 ký tự, 15 phút, 1 lần, ≤10 lần thử/giờ; **chuyển** (không sao chép) save + coco, máy cũ về màn hình đầu | Sửa lỗi iPhone (app không chung localStorage với Safari) mà không nhân đôi coco |
+| Góp ý chỉ gửi khi đã đăng nhập ẩn danh, ≤10/giờ; duyệt: new → approved (cần sửa) → fixed/rejected/duplicate; đã chốt thì chỉ admin mở lại; nút "📋 Xuất cho Claude" | Người dùng muốn duyệt báo lỗi rồi đưa Claude sửa |
+| Nhân viên (admin/moderator/teacher) bắt buộc MFA (`aal2`) mới có quyền; điều chỉnh coco cần 2 admin; trang quản trị giữ phiên trong sessionStorage | An toàn dữ liệu trẻ em; không lặp điểm yếu token localStorage của durian-operadmin |
+| Test SQL/RLS bằng PGlite (Postgres trong Node) + `stub.sql` giả lập Supabase | Máy không có Docker/Postgres |
+| Trang quản trị ở repo riêng `E:\GitHub\TruongHocOnline-Admin` | Tách khỏi game (host tĩnh khác, có Cloudflare Access) |
 | **CLAUDE.md = bản đồ dự án + nhật ký tiến độ** (trạng thái, việc tiếp theo, quyết định của phiên, nhật ký), luôn cập nhật cuối phiên; rules giữ quy tắc theo chủ đề | Người dùng yêu cầu rõ; trạng thái/nhật ký chỉ ở một nơi để không lệch nhau |

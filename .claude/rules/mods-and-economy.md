@@ -27,7 +27,10 @@ paths:
 - **Mọi thay đổi coco đi qua `eco.earn / spend / lose / buy`**, không sửa `state.coco` trực tiếp (trừ debug). Mỗi lần
   đổi ghi một dòng vào `state.ledger` (giữ ≤100). Mua thất bại không ghi.
 - `earn` giới hạn `EARN_CAP_PER_DAY` = 40 qua `today.earned`. Mức: `EARN.correct` 1, `subjectDone` 5, `cleanDay` 5.
-- Giữ nguyên chữ ký các hàm: khi có Supabase sẽ chuyển phần thân sang gọi server.
+- Giữ nguyên chữ ký các hàm. `eco.setSink(cloud.queueCoco)`: mỗi thay đổi thành một op (earn/spend/lose, `spend`
+  có tham số thứ 4 `itemId` để server kiểm giá) trong hàng chờ `tho-coco-ops`; `cloud.syncCoco` gửi `coco_apply`
+  (lúc vào game, mỗi 60 s, khi ẩn trang) rồi lấy số dư server + op chưa gửi. Thêm đồ vào mods/ → chạy
+  `node supabase/gen-seed.mjs` và chạy seed trên project (món không có trong `shop_items` bị server từ chối).
 
 ## Góp ý (`js/feedback.js`)
 

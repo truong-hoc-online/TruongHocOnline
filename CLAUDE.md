@@ -24,7 +24,7 @@ mỗi phiên. Quy tắc chi tiết theo chủ đề nằm trong `.claude/rules/`
 | `testing.md` | Fuzz, unit, E2E 3 cỡ, mẹo test | `js/**/*.js`, `sw.js`, `index.html`, `style.css`, `mods/**` |
 
 Link game: https://truong-hoc-online.github.io/TruongHocOnline/ · Repo: github.com/truong-hoc-online/TruongHocOnline
-(public) · SW cache hiện tại: `tho-v5` · Save: `state.v = 3`.
+(public) · SW cache hiện tại: `tho-v6` · Save: `state.v = 3`.
 
 ## Trạng thái
 
@@ -43,12 +43,15 @@ Link game: https://truong-hoc-online.github.io/TruongHocOnline/ · Repo: github.
 | Đồ chơi chọc bạn (súng nước, bã kẹo cao su, trà sữa trân châu, pháo giấy) + bị bắt / bị mách | ✅ `6e35dcb` |
 | Hộp thư góp ý 📮 (nút HUD + hộp thư cạnh cổng), hàng chờ trên máy | ✅ `6e35dcb` · ⏳ gửi thật cần Supabase |
 | `_headers` cho Cloudflare Pages | ✅ `6e35dcb` · ⏳ chưa chuyển host |
-| Kiểm thử: unit 24 + E2E 54 kiểm tra × 3 cỡ (1280×720, 390×844, giả lập iPhone), không lỗi console | ✅ cho bản `6e35dcb` |
+| **S0** Bộ test trong repo `tests/` (`run-all.ps1`): fuzz, unit 38, E2E 69/69/71 × 3 cỡ | ✅ `fee81d0` · đạt cho `503d6a5` |
+| **A1** Xuất/nhập ngân hàng câu hỏi CSV cho giáo viên (`tools/`) | ✅ `fd3462e` · chờ giáo viên (P5) |
+| **B1** Supabase schema + RLS + hàm (lưu, mã chuyển máy, góp ý, ví coco, cửa hàng, xếp hạng, duyệt mod, nhân viên + MFA, nhật ký); test RLS bằng PGlite 75 | ✅ `4cd88bf`, `3b03717` · người dùng đang tạo project |
+| **B2–B5** Game nối Supabase: đăng nhập ẩn danh, sao lưu save, mã chuyển máy, đồng bộ coco, giá server, 🏆 xếp hạng; SW `tho-v6` | ✅ `503d6a5` · ⏳ **chưa thử online** (chờ URL + key) |
+| **D1–D5** Trang quản trị — repo riêng `E:\GitHub\TruongHocOnline-Admin` (Next 16 xuất tĩnh, MFA, sessionStorage, `?demo`, 📋 Xuất cho Claude, 28 test) | ✅ `f99dc81` (repo đó) · ⏳ chưa có remote, chưa deploy |
 | Quy tắc Claude tách vào `.claude/rules/` theo đặc tả Claude Code | ✅ `1db0c1c` |
 | **Chưa push** các commit của phiên này | ⏳ Người dùng push bằng GitHub Desktop |
 | Supabase (lưu tiến độ, góp ý, xếp hạng, coco trên server) | ⏳ Chờ người dùng tạo project + gửi URL + anon key |
 | Cloudflare Pages + tên miền riêng | ⏳ Chờ người dùng mua tên miền |
-| Trang quản trị (Next.js theo mẫu durian-operadmin) | ❌ Chưa làm — cần Supabase |
 | AI soạn câu hỏi → giáo viên duyệt | 💡 Đề xuất — cần khoá API |
 | Giáo viên duyệt câu hỏi `js/subjects.js` | ❌ Chưa |
 | "Giáo dục địa phương" theo tỉnh | ❌ Đang là văn hoá chung — chưa biết tỉnh |
@@ -58,8 +61,14 @@ Link game: https://truong-hoc-online.github.io/TruongHocOnline/ · Repo: github.
 
 ## Việc tiếp theo (phiên sau)
 
-Việc đã chia thành segment (mã P/S/A/Q/H/B/D) để giao người hoặc agent: xem [SEGMENTS.md](SEGMENTS.md). Làm **S0**
-(đưa test vào repo) trước khi giao việc code song song.
+Việc đã chia thành segment (mã P/S/A/Q/H/B/D) để giao người hoặc agent: xem [SEGMENTS.md](SEGMENTS.md). Đã xong:
+S0, A1, B1–B5 (phía code), D1–D5.
+
+0. **Ngay khi người dùng gửi Supabase URL + anon key** (đang tạo project "truong-hoc-online" trong org "Moter School
+   1", cùng tài khoản với durian): kiểm họ đã chạy 2 migration + seed → điền `js/config.js` → thử online thật (đăng
+   nhập ẩn danh, lưu, mã chuyển máy, coco, góp ý, xếp hạng) → tăng SW → `tests/run-all.ps1` → commit. Rồi hướng dẫn
+   tạo tài khoản admin + MFA + `insert into staff`, điền `.env.local` trang quản trị, tạo repo GitHub cho trang quản
+   trị, deploy Cloudflare Pages + Access.
 
 1. **Hỏi người dùng kết quả chơi thử** bản `6e35dcb` trên điện thoại (sau khi push): coco, cửa hàng, chọc bạn, góp ý,
    nhịp 6 giờ / giặt 15 phút, màu áo các lớp, giật/lag. Sửa theo phản hồi trước (nhớ tăng `VERSION` trong `sw.js`).
@@ -97,6 +106,13 @@ Danh sách đầy đủ (cả các phiên trước) ở `.claude/rules/decisions
 ## Nhật ký phiên
 
 Mới nhất ở trên.
+
+- **2026-11-03 · máy bàn (tiếp 2)** — Người dùng: P1 chơi thử dần + muốn chỗ duyệt báo lỗi rồi nhờ Claude sửa; làm
+  A1, backend, trang quản trị. Giao agent S0 (test), A1 (CSV câu hỏi), D1–D5 (trang quản trị, repo riêng); tự làm B1
+  (schema + 67→75 test RLS bằng PGlite, không Docker) và B2–B5 phía game. Phiên bị ngắt giữa chừng → tắt server 8081
+  bị bỏ lại, cho agent làm tiếp. Vá thêm migration 0001 theo báo cáo agent quản trị (khoá góp ý đã chốt, nhật ký ẩn
+  tên/từ cấm). Người dùng hỏi dùng chung tài khoản Supabase với durian → được, project + org riêng; hướng dẫn form tạo
+  project (Singapore, tắt "auto expose", bật auto RLS). A1 phát hiện câu hỏi dùng tên tỉnh cũ (sáp nhập 2025).
 
 - **2026-11-03 · máy bàn (tiếp)** — Người dùng muốn chia việc để nhờ người/agent làm → viết `SEGMENTS.md`: luật chung
   (nhánh mỗi segment, không tăng `VERSION` trong nhánh, một segment đổi save mỗi lúc), bản đồ xung đột (`game.js`),

@@ -12,7 +12,7 @@ paths:
 # PWA, offline và cài lên màn hình chính
 
 - **`sw.js`: TĂNG `VERSION` mỗi lần sửa BẤT KỲ file nào** của game, và **thêm mọi file mới vào `FILES`**. Nếu không,
-  app đã cài trên điện thoại cứ chạy bản cũ trong cache (cache-first). Hiện tại: `tho-v5`.
+  app đã cài trên điện thoại cứ chạy bản cũ trong cache (cache-first). Hiện tại: `tho-v6`.
 - Pack mod mới: thêm vào `mods/index.json` **và** `FILES` trong `sw.js`, rồi tăng `VERSION`.
 - `_headers` (Cloudflare Pages / Netlify; GitHub Pages bỏ qua): `sw.js` và `mods/*` là `no-cache`; nosniff,
   Referrer-Policy, Permissions-Policy, X-Frame-Options. Chưa có CSP.

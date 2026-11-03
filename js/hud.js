@@ -1,6 +1,6 @@
 // HUD: objective line, stats, menus (subjects, tags, mail, rank, sound, help).
 import { CLASS_GROUPS, POINTS_TO_PASS, SUBJECTS } from './subjects.js';
-import { $, ask, esc, ui } from './ui.js';
+import { $, ask, cycleSoundMode, esc, soundIcon, soundLabel, toast, ui } from './ui.js';
 import * as eco from './economy.js';
 import { GAME_VERSION } from './config.js';
 import { cls, conductName, fmt, G, has, hhmm, isDone, mmss, subj, TOUCH } from './ctx.js';
@@ -75,7 +75,10 @@ export function initHud() {
   };
   $('btnMail').onclick = () => { if (!ui.modalOpen && !G.busy && G.state) { G.busy = true; mailbox().finally(() => { G.busy = false; }); } };
   $('btnRank').onclick = () => { if (!ui.modalOpen && !G.busy && G.state) { G.busy = true; rankAndTransfer().finally(() => { G.busy = false; }); } };
-  $('btnSound').onclick = () => { ui.soundOn = !ui.soundOn; $('btnSound').textContent = ui.soundOn ? '🔊' : '🔇'; };
+  // 🔊 cycles: on (ambience + effects) → effects only → off; remembered in localStorage by ui.js
+  const paintSound = () => { const b = $('btnSound'); b.textContent = soundIcon(); b.title = soundLabel(); };
+  paintSound();
+  $('btnSound').onclick = () => { cycleSoundMode(); paintSound(); toast(soundLabel(), 1600); };
   $('btnHelp').onclick = () => { if (!ui.modalOpen) showHelp(); };
 }
 export function showHelp() {

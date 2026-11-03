@@ -1,7 +1,7 @@
 // Keyboard, joystick, tap-to-move and pinch zoom; moving the player each frame.
 import * as THREE from './vendor/three.module.min.js';
 import { animateCharacter, faceTowards } from './chars.js';
-import { $, ui, unlockAudio } from './ui.js';
+import { $, ui } from './ui.js'; // audio unlock on the first gesture is registered by ui.js itself
 import { clamp, G, TOUCH } from './ctx.js';
 import { collide } from './player.js';
 import { interact } from './actions.js';
@@ -58,7 +58,6 @@ export function initInput() {
   renderer.domElement.addEventListener('wheel', (e) => { G.camDist = clamp(G.camDist + Math.sign(e.deltaY) * 1.5, 8, 30); }, { passive: true });
 
   if (TOUCH) $('joy').hidden = false;
-  addEventListener('pointerdown', unlockAudio, { once: true });
 
   // ---- touch on the 3D view: tap ground = walk there, two fingers = zoom ----
   canvas.addEventListener('pointerdown', (e) => {

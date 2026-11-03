@@ -115,6 +115,7 @@ function gateCheck() {
   if (!t.bag) { addStat('conduct', -2); notes.push('🎒 Quên sách vở — hạnh kiểm −2'); }
   if (!t.breakfast) { addStat('energy', -15); notes.push('🍚 Chưa ăn sáng — năng lượng −15'); }
   if (notes.length) {
+    sfx('whistle');
     say(npcs.redStar.label, 'Bạn ơi, cho mình ghi tên nha!');
     ask('Sao đỏ ở cổng trường', `<p>${notes.join('<br>')}</p>`, [{ label: 'Dạ, em biết rồi', value: 1 }]);
   } else {
@@ -129,7 +130,7 @@ function startClass(period, ring_ = true) {
   t.period = period;
   G.sub = 'class';
   G.classStart = G.now;
-  if (ring_) sfx('bell');
+  if (ring_) sfx('drum'); // school drum: tùng tùng tùng
   const s = subj(t.subjects[period]);
   setTeacherLabel(s);
   sys(`Tiết ${period + 1}/${t.subjects.length}: ${s.icon} ${s.name}. Vào Lớp ${cls()} ngồi vào chỗ có vòng sáng.`);
@@ -230,7 +231,7 @@ function startBreak() {
   G.breakStart = G.now;
   breakWarned = false;
   t.readBreak = t.playedBreak = false;
-  sfx('bell');
+  sfx('drum2');
   npcs.toYard();
   setTeacherLabel(null);
   sys('Ra chơi! Ra sân, căng tin, thư viện… Nghe chuông thì vào lớp.');
@@ -251,7 +252,7 @@ function endBreak() {
 function endPeriods() {
   standUp();
   G.sub = 'free';
-  sfx('bell');
+  sfx('drum2');
   npcs.toYard();
   setTeacherLabel(null);
   sys(`Hết tiết học buổi này! Tự do ở trường, ${hhmm(G.state.sessionEnd - Date.now())} nữa tan trường. Bạn có thể thoát game, lát quay lại.`);

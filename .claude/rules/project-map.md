@@ -7,7 +7,8 @@ E:\TruongHocOnline\
   js\game.js               điểm vào: nối các mô-đun (init*), nhãn trên đầu, ánh sáng theo giờ, vòng lặp tick()
                            (camera, hotspot → nút hành động), màn bắt đầu (begin), ?debug → window.__g (tp, skip,
                            interact, actionFor, state, sub, sitting, busy, today, endSession, finishWash, catalog,
-                           prankTarget, giveCoco, pos)
+                           prankTarget, giveCoco, pos, ambience, audio); ambienceFor() chọn tiếng nền theo
+                           giai đoạn + zone (gọi 4 lần/giây cùng HUD)
   js\ctx.js                G = trạng thái dùng chung, đổi được từ mọi mô-đun (state, player, meLabel, sub, busy,
                            sitting, now, camDist, movedAway, prankTarget, classStart/breakStart/preBellUntil,
                            bullyAt/bullyActive/guardUntil, washNotified, currentAction); TOUCH; tiện ích (pick,
@@ -58,7 +59,11 @@ E:\TruongHocOnline\
                            {kind: cap|bow|glasses|headband, color})
   js\subjects.js           12 môn, POINTS_TO_PASS=5, CLASS_GROUPS (4 lớp × 3 môn + màu áo), ngân hàng câu (đáp án
                            ĐÚNG đặt ĐẦU, xáo khi hiện, `g` = lớp tối thiểu); Toán + Anh sinh tự động   ← CẦN giáo viên duyệt
-  js\ui.js                 ask()/runQuiz()/chat/toast/nhãn trên đầu/âm thanh WebAudio (unlockAudio cho iOS); ui.lastQ
+  js\ui.js                 ask()/runQuiz()/chat/toast/nhãn trên đầu; ui.lastQ; âm thanh chỉ bằng WebAudio (không file):
+                           sfx(ok|bad|up|pop|bell|drum|drum2|whistle), ambience(yard|outside|class|home|null) = tiếng
+                           nền theo chỗ (ồn sân + chim, room tone lớp, nhà yên + giai điệu rất nhỏ); chế độ 🔊 bật →
+                           🔉 chỉ hiệu ứng → 🔇 tắt (localStorage `tho-sound`, mặc định bật, âm lượng nhỏ);
+                           AudioContext chỉ tạo khi người chơi chạm/bấm (iOS), suspend khi trang ẩn; audioInfo()
   js\install.js            hướng dẫn "Thêm vào MH chính" (iPhone Safari / iPhone Chrome / Android; nút cài 1 chạm
                            nếu có beforeinstallprompt); tự hiện lần đầu trên điện thoại; đăng ký sw.js
   js\vendor\three.module.min.js   Three.js r160 (MIT, kèm THREE-LICENSE.txt)

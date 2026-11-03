@@ -6,6 +6,9 @@ paths:
   - "js/feedback.js"
   - "js/config.js"
   - "js/game.js"
+  - "js/save.js"
+  - "js/shop.js"
+  - "js/prank.js"
   - "MODDING.md"
 ---
 

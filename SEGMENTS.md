@@ -28,13 +28,17 @@ Cập nhật 2026-11-03. Trạng thái tổng của dự án ở [CLAUDE.md](CLA
 
 ## Bản đồ xung đột
 
-`js/game.js` (≈80 KB) chứa gần hết lối chơi. Các segment đụng nhiều vào nó **không nên chạy song song** trừ khi đã
-xong **S1** (tách game.js).
+Sau **S1**, lối chơi nằm trong các mô-đun theo chủ đề (xem `.claude/rules/project-map.md`); `js/game.js` chỉ còn vòng
+lặp + nối. Trạng thái dùng chung ở `js/ctx.js` (`G`): thêm trường mới vào `G` là chỗ dễ xung đột nhất, ghi rõ trong PR.
 
 | Nhóm file | Segment đụng tới |
 |---|---|
-| `js/game.js` (nhiều) | S1, A2, B2, B4 |
-| `js/game.js` (ít, vài dòng nối) | A3, A6, B5 |
+| `js/session.js` (phiên, tiết học, tổng kết), `js/hud.js` | A2 |
+| `js/save.js` (định dạng save), `js/online.js` | B2 |
+| `js/shop.js` (cửa hàng, bàn ăn, căng tin) | B4 |
+| `js/chat.js` | A6 |
+| `js/hud.js`, `js/online.js` (vài dòng) | B5 |
+| `js/game.js`, `js/ctx.js` (vài dòng nối) | A2, A3, B2, B4 |
 | `js/world.js`, `js/npc.js`, `js/chars.js` | A4 |
 | `js/subjects.js` | A1, Q2 |
 | `js/feedback.js`, `js/config.js` | B3, B2 |

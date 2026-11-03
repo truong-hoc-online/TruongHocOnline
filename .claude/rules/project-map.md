@@ -41,6 +41,7 @@ E:\TruongHocOnline\
   chay.bat                 python http.server cổng 8081 + mở trình duyệt (chỉ để thử trên PC)
   README.md                mô tả lối chơi, tag, cách chơi trên điện thoại, việc trước khi phát hành
   MODDING.md               hướng dẫn làm mod + quy định nội dung được duyệt
+  SEGMENTS.md              việc chia thành segment để giao người/agent (luật chung, bản đồ xung đột, thứ tự)
   CLAUDE.md                bản đồ dự án + nhật ký tiến độ (trạng thái, việc tiếp theo, quyết định, nhật ký phiên)
   .claude\rules\*.md       quy tắc cho Claude Code, mỗi file một chủ đề
 ```

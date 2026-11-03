@@ -58,6 +58,9 @@ Link game: https://truong-hoc-online.github.io/TruongHocOnline/ · Repo: github.
 
 ## Việc tiếp theo (phiên sau)
 
+Việc đã chia thành segment (mã P/S/A/Q/H/B/D) để giao người hoặc agent: xem [SEGMENTS.md](SEGMENTS.md). Làm **S0**
+(đưa test vào repo) trước khi giao việc code song song.
+
 1. **Hỏi người dùng kết quả chơi thử** bản `6e35dcb` trên điện thoại (sau khi push): coco, cửa hàng, chọc bạn, góp ý,
    nhịp 6 giờ / giặt 15 phút, màu áo các lớp, giật/lag. Sửa theo phản hồi trước (nhớ tăng `VERSION` trong `sw.js`).
 2. **Chờ / nhắc người dùng:** mua tên miền; tạo **project Supabase riêng** (Singapore, bật Anonymous sign-ins) → gửi
@@ -94,6 +97,10 @@ Danh sách đầy đủ (cả các phiên trước) ở `.claude/rules/decisions
 ## Nhật ký phiên
 
 Mới nhất ở trên.
+
+- **2026-11-03 · máy bàn (tiếp)** — Người dùng muốn chia việc để nhờ người/agent làm → viết `SEGMENTS.md`: luật chung
+  (nhánh mỗi segment, không tăng `VERSION` trong nhánh, một segment đổi save mỗi lúc), bản đồ xung đột (`game.js`),
+  thứ tự đợt, 6 việc của người + 18 segment code. Phát hiện script test chỉ nằm ở scratchpad → segment S0.
 
 - **2026-11-03 · máy bàn** — Lên kế hoạch phiên từ CLAUDE.md. Repo đã push nhưng private → hướng dẫn public + bật
   Pages (lần đầu 404 vì đang build). Người dùng chơi được trên điện thoại, yêu cầu 6 ý (nhịp 6 giờ + giặt 15 phút +

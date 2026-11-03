@@ -15,7 +15,10 @@ tests/                               test RLS chạy bằng PGlite (Postgres tro
 1. Supabase → **New project** (riêng cho game, region **Singapore**).
 2. **Authentication → Sign In / Providers → Anonymous sign-ins: bật.** Nên bật thêm **CAPTCHA** (Cloudflare
    Turnstile) để chống tạo tài khoản ẩn danh hàng loạt.
-3. **SQL Editor** → dán toàn bộ `migrations/20261103000000_init.sql` → Run. Sau đó dán `seed.sql` → Run.
+3. **SQL Editor** → chạy lần lượt, mỗi file một query mới (dán toàn bộ → Run):
+   1. `migrations/20261103000000_init.sql`
+   2. `migrations/20261103000001_review_locks_audit.sql`
+   3. `seed.sql`
 4. **Project Settings → API**: gửi **Project URL** và khoá **anon / publishable** cho agent để điền `js/config.js`.
    **Không gửi, không dán vào code** khoá `service_role` / secret.
 5. Tài khoản quản trị: **Authentication → Users → Add user** (email của bạn) → đăng nhập trang quản trị, bật MFA →

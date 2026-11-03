@@ -164,6 +164,24 @@ check('code is single-use', (await as(B, 'select public.claim_transfer_code($1) 
 for (let i = 0; i < 9; i++) await as(B, 'select public.claim_transfer_code($1) r', ['ZZZZZZZZ']);
 check('claim attempts limited (10/hour)', !!(await fails(B, 'select public.claim_transfer_code($1)', ['ZZZZZZZZ'])));
 
+// ---------- review locks + audit (migration 0001)
+const MOD = '00000000-0000-4000-8000-0000000000e2';
+await admin(`insert into auth.users (id) values ('${MOD}')`);
+await admin(`insert into public.staff (user_id, role, display_name) values ('${MOD}', 'moderator', 'Kiểm duyệt')`);
+const mfa = { aal: 'aal2' };
+await as(ADM1, `update public.feedback set status = 'fixed' where id = $1`, [fid], mfa);
+check('moderator cannot change a fixed report', !!(await fails(MOD, `update public.feedback set status = 'new' where id = $1`, [fid], mfa)));
+check('admin can reopen a fixed report', !(await fails(ADM1, `update public.feedback set status = 'new' where id = $1`, [fid], mfa)));
+check('moderator can review an open report', (await as(MOD, `update public.feedback set status = 'duplicate' where id = $1`, [fid], mfa)).affectedRows === 1);
+await as(MOD, `update public.profiles set hidden = true where display_name = 'Minh'`, [], mfa);
+check('hiding a name is audited', (await admin(`select count(*)::int c from public.audit_log where action = 'profile.hide' and actor = '${MOD}'`)).rows[0].c === 1);
+await as(MOD, `insert into public.banned_words (word) values ($1)`, [' LAN '], mfa);
+check('new banned word stored lower-case + audited', (await admin(`select count(*)::int c from public.audit_log where action = 'banned_word.add' and target = 'lan'`)).rows[0].c === 1);
+check('new banned word hides existing names', (await admin(`select hidden from public.profiles where user_id = '${B}'`)).rows[0].hidden === true);
+check('player cannot add banned words', !!(await fails(A, `insert into public.banned_words (word) values ('abc')`)) || (await admin(`select count(*)::int c from public.banned_words where word = 'abc'`)).rows[0].c === 0);
+await as(MOD, `delete from public.banned_words where word = 'lan'`, [], mfa);
+check('removing a banned word is audited', (await admin(`select count(*)::int c from public.audit_log where action = 'banned_word.remove'`)).rows[0].c === 1);
+
 // ---------- grants sanity: every public table has RLS on
 const noRls = (await admin(`select relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
   where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity`)).rows;

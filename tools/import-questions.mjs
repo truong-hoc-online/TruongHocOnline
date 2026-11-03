@@ -11,6 +11,12 @@
 //   Xoá / Xóa          remove the question
 //   S / Sai / (empty)  keep unchanged, listed in the report as "chưa duyệt / sai cần xem"
 // Rows with Nguồn = "Mới" and some content are added (unless marked Xoá). Generated samples are never imported.
+//
+// SAFETY GATE for AI-drafted content (child-safety rule: AI content must be reviewed by a person first):
+// rows whose Nguồn starts with "AI" (e.g. "AI soạn — chờ duyệt", "AI đề xuất sửa — chờ duyệt") or whose ID looks
+// like `<subject>-ai-<n>` are applied ONLY when Duyệt is Đ or Sửa. Anything else (empty, S, unknown mark) is skipped
+// and listed as "AI chưa duyệt". A new AI question marked Xoá is dropped; an AI fix proposal on an existing BANK
+// row marked Xoá removes that question, exactly like a normal row.
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -64,6 +70,11 @@ function parseGrade(raw) {
   return { g: m ? Number(m[1]) : NaN, given: true, raw: s };
 }
 
+// AI-drafted row: Nguồn starts with "AI" (any case) or the ID has the `-ai-<n>` form.
+export function isAiRow(source, id) {
+  return /^ai\b/.test(fold(source)) || /-ai-\d+$/i.test(String(id ?? '').trim());
+}
+
 const same = (x, y) => canonicalBank({ k: [x] }) === canonicalBank({ k: [y] });
 
 export async function importQuestions({ csvFile, target = SUBJECTS_FILE, write = false, quiet = false }) {
@@ -79,7 +90,7 @@ export async function importQuestions({ csvFile, target = SUBJECTS_FILE, write =
   const hm = headerMap(rows[0]);
   const cell = (r, key) => (hm[key] === undefined ? '' : unprotectExcel(r[hm[key]] ?? ''));
 
-  const report = { kept: [], edited: [], removed: [], added: [], pending: [], invalid: [], samples: [], notes: [], warnings: [] };
+  const report = { kept: [], edited: [], removed: [], added: [], pending: [], aiSkipped: [], invalid: [], samples: [], notes: [], warnings: [] };
   // Result: per subject, the list of original entries (by index) with their decision, plus new ones.
   const decisions = new Map(); // id -> { action, item }
   const additions = {}; // subjectId -> [item]
@@ -119,12 +130,19 @@ export async function importQuestions({ csvFile, target = SUBJECTS_FILE, write =
       g: grade.g,
     });
 
-    const isNew = fold(source) === fold(SOURCE_NEW) || /-moi-\d/.test(id);
+    const isAI = isAiRow(source, id);
+    const approved = mark === 'keep' || mark === 'edit';
+
+    const isNew = fold(source) === fold(SOURCE_NEW) || /-(?:moi|ai)-\d/.test(id);
     if (isNew) {
       const item = applyEdits(base);
       if (!item.q && !item.a.some(Boolean)) continue; // still blank
       if (mark === 'remove') { report.notes.push(`${label}: dòng mới bị đánh Xoá — bỏ qua`); continue; }
-      const subj = nameToId.get(fold(cell(r, 'subject'))) || nameToId.get(fold(id.replace(/-moi-\d+$/, '')));
+      if (isAI && !approved) {
+        report.aiSkipped.push(`${label}: câu AI soạn chưa duyệt (Duyệt="${cleanText(cell(r, 'review'))}") — KHÔNG nhập: ${item.q}`);
+        continue;
+      }
+      const subj = nameToId.get(fold(cell(r, 'subject'))) || nameToId.get(fold(id.replace(/-(?:moi|ai)-\d+$/, '')));
       if (!subj) { report.invalid.push(`${label}: không xác định được môn "${cleanText(cell(r, 'subject'))}"`); continue; }
       if (subj === 'toan' || (subj === 'anh' && !BANK.anh)) {
         report.invalid.push(`${label}: môn ${subj} sinh câu tự động, chưa có ngân hàng để thêm — chuyển cho người lập trình: "${item.q}"`);
@@ -134,8 +152,13 @@ export async function importQuestions({ csvFile, target = SUBJECTS_FILE, write =
       const errs = validateQuestion(item);
       if (grade.given && Number.isNaN(grade.g)) errs.push(`lớp tối thiểu "${grade.raw}" không phải số`);
       if (errs.length) { report.invalid.push(`${label}: câu mới "${item.q}" — ${errs.join('; ')} → KHÔNG thêm`); continue; }
+      const known = [...(BANK[subj] || []), ...(additions[subj] || [])];
+      if (known.some((x) => fold(x.q) === fold(item.q))) {
+        report.invalid.push(`${label}: câu mới "${item.q}" trùng câu đã có trong môn ${subj} → KHÔNG thêm`);
+        continue;
+      }
       (additions[subj] ||= []).push(item);
-      report.added.push(`${label}: ${item.q}`);
+      report.added.push(`${label}: ${item.q}${isAI ? ' (AI soạn, đã duyệt)' : ''}`);
       if (mark === 'wrong' || mark === 'empty') report.pending.push(`${label}: câu mới chưa có dấu Đ — vẫn thêm, nên xem lại`);
       continue;
     }
@@ -149,6 +172,11 @@ export async function importQuestions({ csvFile, target = SUBJECTS_FILE, write =
     }
 
     if (mark === 'remove') { decisions.set(id, { action: 'remove' }); report.removed.push(`${id}: ${orig.q}`); continue; }
+    if (isAI && !approved) {
+      decisions.set(id, { action: 'keep', item: orig });
+      report.aiSkipped.push(`${id}: đề xuất sửa của AI chưa duyệt (Duyệt="${cleanText(cell(r, 'review'))}") — giữ câu cũ`);
+      continue;
+    }
 
     // Teachers sometimes type the fix straight into the original columns: honour that too.
     const fromRow = { q: base.q || orig.q, a: base.a.map((x, i) => x || orig.a[i]) };
@@ -181,16 +209,20 @@ export async function importQuestions({ csvFile, target = SUBJECTS_FILE, write =
 
   // Build the new BANK in the original subject order; questions missing from the CSV are kept.
   const newBank = {};
+  const missing = [];
   for (const [subj, list] of Object.entries(BANK)) {
     newBank[subj] = [];
     list.forEach((orig, idx) => {
       const id = `${subj}-${String(idx + 1).padStart(3, '0')}`;
       const d = decisions.get(id);
-      if (!d) { report.warnings.push(`${id}: không có trong CSV — giữ nguyên`); newBank[subj].push(orig); return; }
+      if (!d) { missing.push(id); newBank[subj].push(orig); return; }
       if (d.action !== 'remove') newBank[subj].push(d.item);
     });
     newBank[subj].push(...(additions[subj] || []));
   }
+  // A partial file (e.g. only new AI drafts or a few fixes) leaves most of the BANK out: one line, not 100.
+  if (missing.length > 10) report.warnings.push(`${missing.length} câu của BANK không có trong CSV — giữ nguyên (${missing.slice(0, 3).join(', ')}, …)`);
+  else missing.forEach((id) => report.warnings.push(`${id}: không có trong CSV — giữ nguyên`));
 
   // Duplicate questions inside a subject and empty pools would break the game.
   const blockers = [];
@@ -231,12 +263,13 @@ function printReport(r, { csvFile, target, delim, write, blockers, unchanged }) 
   };
   console.log(`Đọc: ${csvFile} (phân cách "${delim === '\t' ? 'tab' : delim}")`);
   console.log(`Đích: ${target}`);
-  console.log(`\nGiữ: ${r.kept.length} · Sửa: ${r.edited.length} · Xoá: ${r.removed.length} · Thêm: ${r.added.length} · Không hợp lệ: ${r.invalid.length} · Chưa duyệt / sai cần xem: ${r.pending.length}`);
+  console.log(`\nGiữ: ${r.kept.length} · Sửa: ${r.edited.length} · Xoá: ${r.removed.length} · Thêm: ${r.added.length} · Không hợp lệ: ${r.invalid.length} · Chưa duyệt / sai cần xem: ${r.pending.length} · AI chưa duyệt (không nhập): ${r.aiSkipped.length}`);
   sec('Đã sửa', r.edited);
   sec('Đã xoá', r.removed);
   sec('Thêm mới', r.added);
   sec('Không hợp lệ (không áp dụng)', r.invalid);
   sec('Chưa duyệt / sai cần xem', r.pending, 40);
+  sec('AI chưa duyệt — không nhập (cần giáo viên ghi Đ hoặc Sửa)', r.aiSkipped, 40);
   sec('Góp ý cho câu tự sinh (Toán/Anh)', r.samples);
   sec('Ghi chú của giáo viên', r.notes);
   sec('Cảnh báo', r.warnings, 60);

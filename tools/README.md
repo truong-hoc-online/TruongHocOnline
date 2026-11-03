@@ -40,25 +40,57 @@ node tools/import-questions.mjs <file.csv> --write --target <bản-sao/subjects.
   - `S` / `Sai` / để trống → giữ nguyên, liệt kê trong báo cáo "chưa duyệt / sai cần xem".
   - Lớp tối thiểu sửa thẳng trong cột của nó.
 - Dòng `Mới` có nội dung → thêm vào cuối môn đó (Toán / Tiếng Anh không có `BANK` → chỉ báo lại cho người lập trình).
-- Mỗi câu sau khi áp dụng phải hợp lệ: câu hỏi không rỗng, **4 đáp án khác nhau, không rỗng**, lớp 6–9. Câu sửa
-  không hợp lệ → giữ câu cũ; câu mới không hợp lệ → không thêm. Môn nào hết câu cho một lớp → không ghi file.
 - `--write` chỉ viết lại khối `const BANK = { … }` (giữ nguyên mọi phần khác của file, cả comment trong `BANK`),
   đúng kiểu `{ q: '...', a: ['đúng', 'sai', 'sai', 'sai'], g: 8 }`, đáp án đúng đặt đầu, `g` bỏ khi là 6. Sau khi ghi
   tự nạp lại file để kiểm tra.
 - Báo cáo: số câu giữ / sửa / xoá / thêm / không hợp lệ, danh sách chưa duyệt, ghi chú của giáo viên, góp ý cho câu
   tự sinh, cảnh báo (ID lạ, ID lặp, câu không có trong CSV…).
 
+- **Cổng duyệt câu AI** (an toàn trẻ em: nội dung AI tạo phải có người duyệt trước khi tới học sinh): dòng có
+  **Nguồn bắt đầu bằng "AI"** (ví dụ `AI soạn — chờ duyệt`, `AI đề xuất sửa — chờ duyệt`) hoặc ID dạng
+  `<môn>-ai-<số>` chỉ được áp dụng khi cột Duyệt là **Đ** (`Đúng`/`OK`) hoặc **Sửa**. Để trống, `S` hay dấu lạ → bỏ
+  qua, liệt kê trong mục "AI chưa duyệt — không nhập". Câu AI mới đánh `Xoá` → bỏ. Dòng AI đề xuất sửa một câu đã có
+  (ID của `BANK`) mà chưa duyệt → giữ câu cũ; đánh `Xoá` → xoá câu đó như dòng thường.
+- Câu mới (cả `Mới` lẫn AI) trùng câu hỏi đã có trong môn → không thêm (báo "Không hợp lệ").
+- Mỗi câu sau khi áp dụng phải hợp lệ: câu hỏi không rỗng, **4 đáp án khác nhau, không rỗng**, lớp 6–9. Câu sửa
+  không hợp lệ → giữ câu cũ; câu mới không hợp lệ → không thêm. Môn nào hết câu cho một lớp → không ghi file.
+
 Sau khi `--write`: chạy fuzz câu hỏi (`tests/`), xem `git diff js/subjects.js`, commit, và bỏ dòng "CẦN giáo viên
 duyệt" cho môn đã duyệt trong `.claude/rules/project-map.md` / README.
 
-## 3. Kiểm tra công cụ — `test-roundtrip.mjs`
+## 3. Bản nháp do AI soạn — `questions/drafts/` + `check-drafts.mjs`
+
+`questions/drafts/` chứa câu hỏi **AI soạn, chưa duyệt**, cùng định dạng với file xuất (cùng cột, UTF-8 có BOM,
+CRLF), `Nguồn = AI soạn — chờ duyệt`, `Duyệt` để trống, ID `<môn>-ai-<số>`:
+
+- `2026-11-03-ai.csv` — 244 câu mới cho 9 môn (trừ Toán, Tiếng Anh tự sinh và Giáo dục địa phương chờ chọn tỉnh):
+  mỗi môn ~12 câu lớp 6 + 5 câu mỗi lớp 7, 8, 9.
+- `fixes-2026-11-03.csv` — đề xuất sửa câu đã có (ID của `BANK`, `Nguồn = AI đề xuất sửa — chờ duyệt`), nội dung
+  đề xuất ở các cột "Sửa …", lý do ở Ghi chú.
+
+Quy trình: gửi file cho giáo viên kèm `HUONG-DAN-DUYET.md` → giáo viên **kiểm tra từng câu** và ghi Đ / Sửa / Xoá →
+`node tools/import-questions.mjs <file-da-duyet.csv>` (chạy thử) → `--write`. Dòng chưa có Đ / Sửa không bao giờ vào
+game (cổng duyệt ở trên). Không tự ghi Đ thay giáo viên.
+
+```
+node tools/check-drafts.mjs questions/drafts/2026-11-03-ai.csv questions/drafts/fixes-2026-11-03.csv
+```
+
+Kiểm tra bản nháp trước khi gửi: đúng tiêu đề cột, môn có ngân hàng, lớp 6–9, 4 đáp án khác nhau (so sánh bỏ dấu:
+"Nguyễn Du" = "Nguyễn Dữ"), không trùng câu trong `BANK` hay trong các file, Nguồn bắt đầu bằng "AI", Duyệt trống;
+cảnh báo khi một đáp án sai chứa nguyên đáp án đúng. In bảng số câu theo môn × lớp và số câu cộng dồn dùng được ở
+mỗi lớp (tính cả `BANK`). Lỗi → exit code 1.
+
+## 4. Kiểm tra công cụ — `test-roundtrip.mjs`
 
 ```
 node tools/test-roundtrip.mjs
 ```
 
 Làm trên bản sao tạm, không đụng `js/subjects.js` thật: xuất → nhập lại không đổi (BANK giống hệt về nội dung và
-từng byte) → file phân cách `;` → mô phỏng giáo viên duyệt (Đ, Sửa, Xoá, S, Mới, sửa sai luật, đổi lớp).
+từng byte) → file phân cách `;` → mô phỏng giáo viên duyệt (Đ, Sửa, Xoá, S, Mới, sửa sai luật, đổi lớp) → cổng
+duyệt AI (Đ / Sửa / ok được nhập; trống / S / Xoá / trùng không; đề xuất sửa chưa duyệt giữ câu cũ) → mọi file trong
+`questions/drafts/`: chưa duyệt thì không nhập gì, ghi Đ hết thì nhập hết không lỗi.
 
 ## 4. Kiểm tra mod — `check-mod.mjs` (segment A5)
 
@@ -97,7 +129,9 @@ Mỗi push và Pull Request (ubuntu-latest, Node 24) chạy 2 job:
 | `export-questions.mjs` | Xuất CSV cho giáo viên |
 | `import-questions.mjs` | Nhập CSV đã duyệt |
 | `questions-lib.mjs` | Dùng chung: đọc/ghi CSV, tìm và ghi `BANK`, kiểm tra câu hỏi |
-| `test-roundtrip.mjs` | Kiểm tra hai công cụ |
+| `check-drafts.mjs` | Kiểm tra bản nháp (AI soạn) trước khi gửi giáo viên |
+| `test-roundtrip.mjs` | Kiểm tra công cụ xuất/nhập câu hỏi (cả cổng duyệt câu AI) |
+| `../questions/drafts/*.csv` | Câu AI soạn + đề xuất sửa, **chờ giáo viên duyệt** |
 | `check-mod.mjs` | Kiểm tra pack mod trước khi nhận vào `mods/` |
 | `test-check-mod.mjs`, `fixtures/bad-pack.json` | Kiểm tra `check-mod.mjs` (pack hỏng mẫu phải bị báo lỗi) |
 | `HUONG-DAN-DUYET.md` | Hướng dẫn gửi kèm cho giáo viên |

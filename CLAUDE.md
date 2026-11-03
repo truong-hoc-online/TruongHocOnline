@@ -59,6 +59,24 @@ Link game: https://truong-hoc-online.github.io/TruongHocOnline/ · Repo: github.
 | Multiplayer + chat thật; vai cô giáo | ❌ Để sau |
 | Thương mại (bán coco bằng tiền thật) | ❌ Phi thương mại trước; chưa có pháp nhân |
 
+## Agent / nhánh đang làm dở
+
+Mỗi segment code làm trong **git worktree riêng** `E:\TruongHocOnline-wt\<tên>` trên nhánh `seg/<tên>` (tạo bằng
+`git worktree add -b seg/<tên> E:\TruongHocOnline-wt\<tên> main`; công cụ `isolation: worktree` của Agent không chạy
+vì git không nằm trong PATH). Mỗi agent chạy test trên một cổng riêng (`tests\run-all.ps1 -Port 80xx`).
+**Mở phiên mới:** với mỗi dòng dưới đây xem `git -C <worktree> log main..HEAD` + `git status`. Agent cũ còn trong phiên
+thì gửi tiếp (SendMessage); phiên mới thì giao agent mới tiếp tục từ nhánh đó (đọc SEGMENTS.md + commit đã có). Xong
+→ chạy test → merge vào `main` → tăng `VERSION` trong `sw.js` một lần → `git worktree remove` → xoá dòng ở đây.
+
+| Segment | Worktree / nhánh | Cổng test | Trạng thái (2026-11-03) |
+|---|---|---|---|
+| S1 tách `game.js` | `s1-tach-game` | 8091 | ⏳ agent đang chạy |
+| A4 hiệu năng (world/npc/chars) | `a4-hieu-nang` | 8092 | ⏳ agent đang chạy |
+| A5 CI + `check-mod` | `a5-ci-kiem-mod` | 8093 | ⏳ agent đang chạy |
+| A7 câu hỏi nháp AI → chờ giáo viên duyệt | `a7-cau-hoi-nhap` | — | ⏳ agent đang chạy |
+| A3 âm thanh nền | (chưa tạo) | | chờ S1 |
+| A2 sự kiện / A6 chat câu có sẵn | (chưa tạo) | | chờ người dùng quyết (P4) |
+
 ## Việc tiếp theo (phiên sau)
 
 Việc đã chia thành segment (mã P/S/A/Q/H/B/D) để giao người hoặc agent: xem [SEGMENTS.md](SEGMENTS.md). Đã xong:

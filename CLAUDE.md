@@ -70,11 +70,11 @@ thì gửi tiếp (SendMessage); phiên mới thì giao agent mới tiếp tục
 
 | Segment | Worktree / nhánh | Cổng test | Trạng thái (2026-11-03) |
 |---|---|---|---|
-| S1 tách `game.js` | `s1-tach-game` | 8091 | ⏳ agent đang chạy |
-| A4 hiệu năng (world/npc/chars) | `a4-hieu-nang` | 8092 | ⏳ agent đang chạy |
-| A5 CI + `check-mod` | `a5-ci-kiem-mod` | 8093 | ⏳ agent đang chạy |
-| A7 câu hỏi nháp AI → chờ giáo viên duyệt | `a7-cau-hoi-nhap` | — | ⏳ agent đang chạy |
-| A3 âm thanh nền | (chưa tạo) | | chờ S1 |
+| S1 tách `game.js` → 15 module | — | | ✅ gộp `e50974f` |
+| A5 CI (`.github/workflows/test.yml`) + `tools/check-mod.mjs` | — | | ✅ gộp `4d689c5` · CI chưa chạy thật trên GitHub |
+| A7 244 câu AI nháp + 4 đề xuất sửa → `questions/drafts/`, cổng duyệt trong import | — | | ✅ gộp `7e0cffd` · chờ giáo viên |
+| A4 hiệu năng (world/npc/chars) | `a4-hieu-nang` (gốc `ce3bdc4`, trước S1) | 8092 | ⏳ agent đang chạy |
+| A3 âm thanh nền (WebAudio) | `a3-am-thanh` (gốc `e50974f`) | 8095 | ⏳ agent đang chạy |
 | A2 sự kiện / A6 chat câu có sẵn | (chưa tạo) | | chờ người dùng quyết (P4) |
 
 ## Việc tiếp theo (phiên sau)

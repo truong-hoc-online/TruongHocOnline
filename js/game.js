@@ -1,6 +1,6 @@
 // Main game: wiring of the modules, labels, light by time of day, main loop, start screen.
 import * as THREE from './vendor/three.module.min.js';
-import { $, esc, sys, toast, ui } from './ui.js';
+import { $, ambience, audioInfo, esc, sys, toast, ui } from './ui.js';
 import { initInstall } from './install.js';
 import * as eco from './economy.js';
 import { flushOutbox } from './feedback.js';
@@ -11,7 +11,7 @@ import { endSchool, enterHome, enterSchool, finishSession, phaseTick, showSessio
 import { CATALOG, catalogReady, initCatalog } from './shop.js';
 import { findPrankTarget, fxTick, PRANK_RANGE } from './prank.js';
 import { initInput, moveTick } from './input.js';
-import { makePlayer, mySeat, respawnNpcs } from './player.js';
+import { makePlayer, mySeat, respawnNpcs, zoneAt } from './player.js';
 import { actionFor, interact } from './actions.js';
 import { initChat } from './chat.js';
 import { initHud, showHelp, updateHud } from './hud.js';
@@ -70,6 +70,16 @@ function applyLight() {
   else tmpC.lerpColors(SKY.night, SKY.dusk, day * 2);
   scene.background.copy(tmpC);
   scene.fog.color.copy(tmpC);
+}
+
+// ---------------- background sound by place ----------------
+const INDOOR_ROOMS = new Set(['teachers', 'team', 'excellent', 'counsel']);
+function ambienceFor() {
+  if (G.state.phase === 'home') return 'home';
+  const z = zoneAt(G.player.position);
+  if (z && (z.quiet || INDOOR_ROOMS.has(z.id))) return 'class';   // classrooms, library, small rooms: room tone
+  if (G.state.phase === 'school' && G.sub === 'class') return 'outside'; // yard is empty during lessons
+  return 'yard';                                                    // pre-bell, break, free time, after school
 }
 
 // ---------------- main loop ----------------
@@ -132,7 +142,7 @@ function tick(t) {
   for (const n of npcs.list) placeLabel(n.label, n.mesh, n.teacher ? 2.15 : 2.05, !n.hidden && n.mesh.visible && n.mesh.position.distanceTo(target) < 34);
 
   hudT -= dt;
-  if (hudT <= 0) { hudT = 0.25; updateHud(npcCount); applyLight(); }
+  if (hudT <= 0) { hudT = 0.25; updateHud(npcCount); applyLight(); ambience(ambienceFor()); }
   renderer.render(scene, camera);
 }
 
@@ -201,6 +211,8 @@ if (location.search.includes('debug')) {
     giveCoco: (n) => { G.state.coco += n; },
     get today() { return G.state.today; },
     pos: () => ({ x: G.player.position.x, z: G.player.position.z }),
+    get ambience() { return audioInfo().ambience; },  // place the scene asks for: yard | outside | class | home | null
+    get audio() { return audioInfo(); },              // { mode, ambience, playing, state: none | suspended | running }
   };
 }
 

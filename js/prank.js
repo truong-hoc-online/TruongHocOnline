@@ -54,6 +54,7 @@ export async function prank(n) {
     t.caughtPrank = true;
     addStat('conduct', -3);
     G.state.inv[toy.id] = 0;
+    if (watcher.tag === 'Sao đỏ') sfx('whistle');
     say(watcher.label, 'Em kia! Đưa đây!');
     await ask(`🚨 ${watcher.name} bắt gặp`, `<p>“Đùa kiểu này làm bạn khó chịu đấy. ${esc(toy.name)} bị tịch thu!”</p><p class="meta">Hạnh kiểm −3 · Mất ${esc(toy.icon)} ${esc(toy.name)}</p>`, [{ label: 'Dạ, em xin lỗi', value: 1 }]);
   } else if (t.victims[n.name] >= 2) {

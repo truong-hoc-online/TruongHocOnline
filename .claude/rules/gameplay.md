@@ -42,6 +42,14 @@
 
 Nút trên HUD + hộp thư cạnh cổng trường.
 
+## Âm thanh 🔊
+
+Toàn bộ tạo bằng WebAudio (`js/ui.js`). Trống trường "tùng tùng tùng" khi vào tiết (hết preBell, hết ra chơi, tiết
+kế); "tùng tùng" khi ra chơi và khi học xong 6 tiết; chuông khi tan trường (hết 6 giờ); còi sao đỏ khi bị ghi tên ở
+cổng, bị bắt đồ dơ, hoặc sao đỏ bắt chọc bạn. Tiếng nền: sân (giờ chơi/tự do/tan học: ồn xa + chim), sân lúc đang học
+(gió + chim), lớp/thư viện/phòng nhỏ (room tone rất nhỏ), nhà (yên + giai điệu ngũ cung rất nhỏ). Nút 🔊 → 🔉 chỉ hiệu
+ứng → 🔇 tắt, nhớ trong máy.
+
 ## Tag
 
 `gioi` (≥15 câu, đúng ≥80%, HK ≥80) · `lop-truong` (ngày ≥3, HK ≥85, đúng ≥60%) · `ca-biet` (HK <60 / vào lớp muộn 3

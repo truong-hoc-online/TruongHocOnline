@@ -1,7 +1,7 @@
 // Uniform sets, washing (15 real minutes), dirty uniforms caught by the red-star student / supervisor.
 import * as THREE from './vendor/three.module.min.js';
 import { classGroup } from './subjects.js';
-import { ask, say } from './ui.js';
+import { ask, say, sfx } from './ui.js';
 import { addStat, G } from './ctx.js';
 import { npcs } from './stage.js';
 
@@ -40,6 +40,7 @@ export function patrolTick() {
     nextPatrol = G.now + 15; // one roll per encounter
     if (Math.random() > 0.4) return;
     const msg = caughtDirty();
+    sfx('whistle');
     say(n.label, 'Áo em dơ quá, đứng lại đã!');
     G.busy = true;
     ask(`🚨 ${n.name} (${n.tag}) bắt gặp`, `<p>“Đồng phục phải giặt sạch sẽ mới đi học chứ em!”</p><p class="meta">${msg}</p>`, [{ label: 'Dạ, em sẽ giặt ạ', value: 1 }])

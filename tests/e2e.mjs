@@ -2,7 +2,7 @@
 // http://localhost:8081/?debug served by `python -m http.server 8081` from the repo root.
 // Usage: node tests/e2e.mjs <outDir> [width=1280] [height=720] [iphone]
 //   iphone → touch emulation + iOS Safari user agent (+ mobile viewport).
-// Plays: mods → shop → wear cap → breakfast with coco → pack toy → 6 periods with pranks → free time →
+// Plays: audio locked until a real tap → mods → shop → wear cap → breakfast with coco → pack toy → 6 periods with pranks → free time →
 // feedback mailbox → dirty uniform caught once → quiet zones → end of session → summary → spare uniform / wash →
 // 6A1→6A2 → A4→7A1 → game closed >6h → re-enter mid-session → migrate save v1→v3 → SW caches mods → no console errors.
 import { spawn, execFileSync } from 'node:child_process';
@@ -223,6 +223,19 @@ async function shot(name) {
 }
 const state = (expr) => evaluate(`(() => { const s = __g.state, t = __g.today; return ${expr}; })()`);
 
+// a real user gesture (CDP input, not a JS click): touch on the iPhone run, mouse otherwise
+async function realTap(x, y) {
+  if (IPHONE) {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  } else {
+    await cdp.send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 });
+    await cdp.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: 1 });
+  }
+  await sleep(150);
+}
+const ambienceIs = (name) => evaluate(`__t.waitFor(() => __g.ambience === ${JSON.stringify(name)} && __g.audio.playing === ${JSON.stringify(name)}, 3000).then(() => __g.audio)`);
+
 // close the help / any leftover modal by pressing its first button
 const drain = (idle = 1200) => ev(`return __t.play({ idle: ${idle} });`);
 
@@ -286,6 +299,13 @@ async function run() {
     check('desktop: install guide not auto-shown', !sheet);
   }
 
+  // audio: nothing may start before the first user gesture (iOS), then the tap unlocks it
+  const a0 = await evaluate(`__g.audio`);
+  check('audio: no AudioContext before the first tap, default mode on', a0.state === 'none' && a0.mode === 'on', a0);
+  await realTap(3, 3); // empty corner of the start screen
+  const a1 = await evaluate(`__t.waitFor(() => __g.audio.state === 'running', 3000).then(() => __g.audio)`);
+  check('audio: first tap unlocks the AudioContext', a1.state === 'running', a1);
+
   // mods
   const cat = await evaluate(`__t.waitFor(() => __g.catalog.items.size, 8000).then(() => ({ n: __g.catalog.items.size, packs: __g.catalog.packs.map((p) => p.id), errors: __g.catalog.errors }))`);
   check('mods: base pack loaded with 18 items, no errors', cat.n === 18 && cat.packs.join() === 'base' && cat.errors.length === 0, cat);
@@ -297,6 +317,18 @@ async function run() {
   check('new game: help dialog shown', help && help.title.includes('Cách chơi'), help?.title);
   await ev(`await __t.click('Vào chơi');`);
   check('new game: at home, day 1, class 6A1, 20 coco', await state(`s.phase === 'home' && s.day === 1 && s.grade === 6 && s.section === 1 && s.coco === 20 && s.v === 3`));
+  const ambHome = await ambienceIs('home');
+  check('ambience: home (calm + melody) playing at home', ambHome.playing === 'home', ambHome);
+  const vis = await ev(`
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    const off = await __t.waitFor(() => __g.audio.state === 'suspended', 2000);
+    delete document.hidden;
+    document.dispatchEvent(new Event('visibilitychange'));
+    const on = await __t.waitFor(() => __g.audio.state === 'running', 2000);
+    return { off: !!off, on: !!on };
+  `);
+  check('audio: suspended while the page is hidden, resumed on return', vis.off && vis.on, vis);
   await evaluate(`__g.giveCoco(200)`);
 
   // shop
@@ -334,6 +366,8 @@ async function run() {
   await goToSchool();
   check('school: 6-hour session started, pre-bell', await state(`s.phase === 'school' && __g.sub === 'preBell' && Math.abs(s.sessionEnd - s.sessionStart - 6 * 3600e3) < 1000 && t.subjects.length === 6`));
   check('school: gate check passed (conduct +1, no dialog)', await state(`s.stats.conduct === ${conduct0 + 1}`) && !(await evaluate(`__t.modal()`)));
+  const ambYard = await ambienceIs('yard');
+  check('ambience: yard before the bell', ambYard.playing === 'yard', ambYard);
 
   // pranks in the yard (pre-bell)
   const p1 = await standNextToClassmate();
@@ -358,6 +392,8 @@ async function run() {
   const coco0 = await state('s.coco');
   await evaluate(`__g.skip(31)`);
   check('bell: period 1 starts', await evaluate(`__t.waitFor(() => __g.sub === 'class', 5000).then(Boolean)`));
+  const ambOut = await ambienceIs('outside');
+  check('ambience: quiet yard (outside) while classes are on', ambOut.playing === 'outside', ambOut);
   // no prank inside the classroom
   const inClass = await ev(`
     const n = __g.npcs.classmates().find((c) => c.grade === __g.state.section && !c.hidden);
@@ -370,7 +406,12 @@ async function run() {
   let periods = 0;
   for (let round = 0; round < 3; round++) {
     await sitInClass();
-    if (round === 0) { await ev(`await __t.waitFor(() => __t.modal()); `); await shot('class-period'); }
+    if (round === 0) {
+      await ev(`await __t.waitFor(() => __t.modal()); `);
+      await shot('class-period');
+      const ambClass = await ambienceIs('class');
+      check('ambience: classroom room tone when seated', ambClass.playing === 'class', { ...ambClass, pos: await evaluate(`__g.pos()`) });
+    }
     const seen = await ev(`return await __t.play({ idle: 2500 });`);
     periods = await state('t.done');
     if (round < 2) {
@@ -446,6 +487,22 @@ async function run() {
   check('yard: chat works, bad words filtered', log.includes('chào mọi người ***') && !log.includes('vcl'), log);
   await shot('free-time');
 
+  // 🔊 button: on → effects only → off → on, remembered in localStorage
+  const ambFree = await ambienceIs('yard');
+  check('ambience: yard in free time', ambFree.playing === 'yard', ambFree);
+  const modes = await ev(`
+    const b = document.getElementById('btnSound'), out = [];
+    const snap = () => ({ mode: __g.audio.mode, icon: b.textContent, stored: localStorage.getItem('tho-sound'), playing: __g.audio.playing, state: __g.audio.state });
+    b.click(); await __t.waitFor(() => __g.audio.playing === null, 2000); out.push(snap());
+    b.click(); await __t.waitFor(() => __g.audio.state === 'suspended', 2000); out.push(snap());
+    b.click(); await __t.waitFor(() => __g.audio.state === 'running' && __g.audio.playing === 'yard', 3000); out.push(snap());
+    return out;
+  `);
+  check('sound button: on → effects only (no ambience)', modes[0].mode === 'sfx' && modes[0].icon === '🔉' && modes[0].stored === 'sfx' && modes[0].playing === null && modes[0].state === 'running', modes[0]);
+  check('sound button: effects only → off (context suspended)', modes[1].mode === 'off' && modes[1].icon === '🔇' && modes[1].stored === 'off' && modes[1].playing === null && modes[1].state === 'suspended', modes[1]);
+  check('sound button: off → on (ambience back)', modes[2].mode === 'on' && modes[2].icon === '🔊' && modes[2].stored === 'on' && modes[2].playing === 'yard' && modes[2].state === 'running', modes[2]);
+  await evaluate(`document.getElementById('btnSound').click()`); // leave it on "effects only" to check it survives a reload
+
   // end of the 6 hours → after school → home → summary
   await evaluate(`__g.endSession()`);
   check('6 hours over: after-school phase', await evaluate(`__t.waitFor(() => __g.state.phase === 'after', 6000).then(Boolean)`));
@@ -507,6 +564,9 @@ async function run() {
   closed.sessionEnd = Date.now() - 3600e3;
   await installSaveAndReload(closed);
   check('reload: continue box shows the saved student', (await evaluate(`document.getElementById('continueBox').hidden ? '' : document.getElementById('continueInfo').textContent`)).includes('7A1'));
+  const keptMode = await evaluate(`({ mode: __g.audio.mode, icon: document.getElementById('btnSound').textContent, state: __g.audio.state })`);
+  check('sound mode "effects only" remembered after reload, no audio before a tap', keptMode.mode === 'sfx' && keptMode.icon === '🔉' && keptMode.state === 'none', keptMode);
+  await evaluate(`(() => { const b = document.getElementById('btnSound'); b.click(); b.click(); return localStorage.getItem('tho-sound'); })()`); // sfx → off → on
   await evaluate(`document.getElementById('btnContinue').click()`);
   const away = await ev(`return await __t.waitFor(() => { const m = __t.modal(); return m && m.title.includes('Hết ngày') && m; }, 8000);`);
   check('closed >6h: session closed on load, summary shown', away && away.title.includes(`Hết ngày ${day}`), away);

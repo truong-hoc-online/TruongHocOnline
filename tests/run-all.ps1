@@ -41,6 +41,7 @@ try {
       try { $up = (Invoke-WebRequest "http://localhost:$Port/sw.js" -UseBasicParsing -TimeoutSec 2).StatusCode -eq 200 } catch { }
     }
     if (-not $up) { throw 'http.server did not start' }
+    $env:E2E_URL = "http://localhost:$Port/?debug" # e2e.mjs reads this (parallel runs use different ports)
 
     $runs = @(
       @{ name = '1280x720'; args = @('1280', '720') },

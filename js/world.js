@@ -1,15 +1,18 @@
 // School + home geometry. Units are metres; +z is south (towards the gate), camera looks from the south.
+// Performance (phones): static boxes, floors, trees and the flag pole are not separate meshes. They are collected
+// into buckets (map region × shadow flags × opacity) and each bucket becomes ONE vertex-coloured merged mesh, so the
+// whole school is a handful of draw calls. Signs (own textures), the yard, the grass and the flag stay separate.
 import * as THREE from './vendor/three.module.min.js';
+import { mergeParts, trs } from './chars.js';
 
 export const HOME_X = 200; // the home is a separate little map far east of the school
 
-const mats = new Map();
-function m(color, opts = {}) {
-  const key = color + JSON.stringify(opts);
-  if (!mats.has(key)) mats.set(key, new THREE.MeshLambertMaterial({ color, ...opts }));
-  return mats.get(key);
-}
 const unitBox = new THREE.BoxGeometry(1, 1, 1);
+const unitPlane = new THREE.PlaneGeometry(1, 1);
+const trunkGeo = new THREE.CylinderGeometry(0.22, 0.32, 2.2, 8);
+const crownGeo = new THREE.SphereGeometry(1.9, 14, 10);
+const poleGeo = new THREE.CylinderGeometry(0.08, 0.1, 7, 8);
+const signGeos = new Map(); // sign width → shared plane
 
 function textTexture(text, { bg = '#1f3b57', fg = '#ffffff', w = 512, h = 128, font = 54 } = {}) {
   const c = document.createElement('canvas');
@@ -36,27 +39,41 @@ export function buildWorld(scene) {
   const root = new THREE.Group();
   scene.add(root);
 
+  // ---------- static geometry buckets (merged at the end of buildWorld) ----------
+  const buckets = new Map();
+  function addStatic(g, matrix, color, { cast = false, receive = true, opacity = 0 } = {}) {
+    const region = matrix.elements[12] > HOME_X / 2 ? 'home' : 'school'; // never one mesh spanning both maps
+    const key = `${region}|${cast}|${receive}|${opacity}`;
+    if (!buckets.has(key)) buckets.set(key, { cast, receive, opacity, parts: [] });
+    buckets.get(key).parts.push({ geo: g, matrix, color });
+  }
+  function flushStatic() {
+    for (const b of buckets.values()) {
+      const mat = b.opacity
+        ? new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true, transparent: true, opacity: b.opacity, depthWrite: false })
+        : new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
+      const mesh = new THREE.Mesh(mergeParts(b.parts), mat);
+      mesh.castShadow = b.cast;
+      mesh.receiveShadow = b.receive;
+      mesh.matrixAutoUpdate = false; // never moves
+      root.add(mesh);
+    }
+    buckets.clear();
+  }
+
   // ---------- helpers ----------
   function box(x0, z0, x1, z1, h, color, o = {}) {
-    const mesh = new THREE.Mesh(unitBox, o.opacity ? m(color, { transparent: true, opacity: o.opacity, depthWrite: false }) : m(color));
-    mesh.scale.set(x1 - x0, h, z1 - z0);
-    mesh.position.set((x0 + x1) / 2, (o.y ?? 0) + h / 2, (z0 + z1) / 2);
-    mesh.castShadow = !o.opacity && h > 0.3;
-    mesh.receiveShadow = true;
-    root.add(mesh);
+    const matrix = trs((x0 + x1) / 2, (o.y ?? 0) + h / 2, (z0 + z1) / 2, 0, 0, 0, x1 - x0, h, z1 - z0);
+    addStatic(unitBox, matrix, color, { cast: !o.opacity && h > 0.3, opacity: o.opacity || 0 });
     if (o.collide !== false) W.colliders.push({ x0, z0, x1, z1, rule: o.rule });
-    return mesh;
   }
   function floor(x0, z0, x1, z1, color, y = 0.01) {
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, z1 - z0), m(color));
-    mesh.rotation.x = -Math.PI / 2;
-    mesh.position.set((x0 + x1) / 2, y, (z0 + z1) / 2);
-    mesh.receiveShadow = true;
-    root.add(mesh);
-    return mesh;
+    addStatic(unitPlane, trs((x0 + x1) / 2, y, (z0 + z1) / 2, -Math.PI / 2, 0, 0, x1 - x0, z1 - z0, 1), color);
   }
   function sign(text, x, y, z, rotY = 0, o = {}) {
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(o.w ?? 2.6, (o.w ?? 2.6) / 4), new THREE.MeshBasicMaterial({ map: textTexture(text, o), transparent: true }));
+    const w = o.w ?? 2.6;
+    if (!signGeos.has(w)) signGeos.set(w, new THREE.PlaneGeometry(w, w / 4));
+    const mesh = new THREE.Mesh(signGeos.get(w), new THREE.MeshBasicMaterial({ map: textTexture(text, o), transparent: true }));
     mesh.position.set(x, y, z);
     mesh.rotation.y = rotY;
     root.add(mesh);
@@ -89,23 +106,16 @@ export function buildWorld(scene) {
         if (s.horiz) W.colliders.push({ x0: g0, z0: s.fixed - 0.2, x1: g1, z1: s.fixed + 0.2, rule: d.rule });
         else W.colliders.push({ x0: s.fixed - 0.2, z0: g0, x1: s.fixed + 0.2, z1: g1, rule: d.rule });
         // coloured strip on the floor shows the door is restricted
-        const strip = s.horiz ? floor(g0, s.fixed - 0.3, g1, s.fixed + 0.3, 0xf2c94c, 0.03) : floor(s.fixed - 0.3, g0, s.fixed + 0.3, g1, 0xf2c94c, 0.03);
-        strip.material = m(0xf2c94c);
+        if (s.horiz) floor(g0, s.fixed - 0.3, g1, s.fixed + 0.3, 0xf2c94c, 0.03);
+        else floor(s.fixed - 0.3, g0, s.fixed + 0.3, g1, 0xf2c94c, 0.03);
       }
     }
   }
   function zone(id, name, x0, z0, x1, z1, extra = {}) { W.zones.push({ id, name, x0, z0, x1, z1, ...extra }); }
   function hotspot(id, x, z, r = 1.4) { W.hotspots.push({ id, x, z, r }); }
   function tree(x, z, flowers = true) {
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.32, 2.2, 8), m(0x7a5230));
-    trunk.position.set(x, 1.1, z);
-    trunk.castShadow = true;
-    root.add(trunk);
-    const crown = new THREE.Mesh(new THREE.SphereGeometry(1.9, 14, 10), m(flowers ? 0xe2552d : 0x4f9d50));
-    crown.scale.y = 0.6;
-    crown.position.set(x, 2.9, z);
-    crown.castShadow = true;
-    root.add(crown);
+    addStatic(trunkGeo, trs(x, 1.1, z), 0x7a5230, { cast: true, receive: false });
+    addStatic(crownGeo, trs(x, 2.9, z, 0, 0, 0, 1, 0.6, 1), flowers ? 0xe2552d : 0x4f9d50, { cast: true, receive: false });
     W.colliders.push({ x0: x - 0.35, z0: z - 0.35, x1: x + 0.35, z1: z + 0.35 });
   }
   function bench(x, z, rot = 0) {
@@ -114,8 +124,12 @@ export function buildWorld(scene) {
   }
 
   // ---------- ground ----------
-  const grass = floor(-120, -100, 320, 100, 0x8cc56b, 0);
-  grass.material = m(0x8cc56b);
+  // the grass spans both maps: its own mesh, not merged into a region
+  const grass = new THREE.Mesh(new THREE.PlaneGeometry(440, 200), new THREE.MeshLambertMaterial({ color: 0x8cc56b }));
+  grass.rotation.x = -Math.PI / 2;
+  grass.position.set(100, 0, 0);
+  grass.receiveShadow = true;
+  root.add(grass);
   const yard = new THREE.Mesh(new THREE.PlaneGeometry(72, 54), new THREE.MeshLambertMaterial({ map: checker() }));
   yard.rotation.x = -Math.PI / 2;
   yard.position.set(0, 0.005, 1);
@@ -231,10 +245,7 @@ export function buildWorld(scene) {
   zone('hangout', 'Góc sau căng tin', -36, 17.6, -26, 26);
 
   // ---------- yard features ----------
-  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 7, 8), m(0xe0e0e0));
-  pole.position.set(0, 3.5, 4);
-  pole.castShadow = true;
-  root.add(pole);
+  addStatic(poleGeo, trs(0, 3.5, 4), 0xe0e0e0, { cast: true, receive: false });
   box(-1.2, 2.8, 1.2, 5.2, 0.3, 0xbdbdbd);
   const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.2), new THREE.MeshBasicMaterial({ map: flagTexture(), side: THREE.DoubleSide }));
   flag.position.set(0.95, 6.3, 4);
@@ -284,6 +295,7 @@ export function buildWorld(scene) {
   zone('home', 'Nhà mình', hx - 6, -6, hx + 6, 6);
   W.colliders.push({ x0: hx - 2, z0: 6, x1: hx + 2, z1: 7, rule: 'homeDoor' });
 
+  flushStatic();
   return W;
 }
 

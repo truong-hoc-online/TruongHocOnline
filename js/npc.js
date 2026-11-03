@@ -5,6 +5,7 @@ import { makeLabel, say } from './ui.js';
 
 const BOY = ['Cu Tèo', 'Bin Bông', 'Tũn', 'Bắp', 'Khoai', 'Tôm', 'Sóc', 'Gạo', 'Bơ', 'Đậu', 'Nhím', 'Mít', 'Ốc', 'Su Su', 'Cốm', 'Bi', 'Cua', 'Tin Tin', 'Kẹo', 'Sún'];
 const GIRL = ['Na Na', 'Bống', 'Mận', 'Ổi', 'Kem', 'Tí Nị', 'Mơ', 'Thóc', 'Hạt Tiêu', 'Bông', 'Mây', 'Sữa', 'Chíp', 'Dâu', 'Cherry', 'Lê', 'Xoài', 'Mochi', 'Bột', 'Cà Rốt'];
+const FAR_ANIM = 25; // metres: farther NPCs animate every other frame
 const rnd = (n) => Math.floor(Math.random() * n);
 const pick = (a) => a[rnd(a.length)];
 
@@ -189,9 +190,23 @@ export class Npcs {
     return { name: n.name, text };
   }
 
+  // Where the player is, for "update far NPCs less often". game.js may set `npcs.focus = player.position`;
+  // otherwise the player is found in the scene (the one character that is not an NPC).
+  focusPos() {
+    if (this.focus) return this.focus;
+    if (!this._player || this._player.parent !== this.scene) {
+      const mine = new Set(this.list.map((n) => n.mesh));
+      this._player = this.scene.children.find((o) => o.userData && o.userData.bodyG && !mine.has(o)) || null;
+    }
+    return this._player ? this._player.position : null;
+  }
+
   update(dt) {
     let visible = 0;
-    for (const n of this.list) {
+    const f = this.focusPos();
+    this.frame = (this.frame || 0) + 1;
+    for (let i = 0; i < this.list.length; i++) {
+      const n = this.list[i];
       if (n.hidden) continue;
       if (n.role === 'student') visible++;
       const p = n.mesh.position;
@@ -222,7 +237,12 @@ export class Npcs {
           n.speed = 1.4 + Math.random() * 1.2;
         }
       }
-      animateCharacter(n.mesh, dt, speed);
+      // Movement/behaviour above runs every frame; only the limb animation of NPCs farther than FAR_ANIM metres
+      // runs every other frame (staggered by index), with the skipped time added on.
+      n.animDt = (n.animDt || 0) + dt;
+      if (f && ((this.frame + i) & 1) && (p.x - f.x) ** 2 + (p.z - f.z) ** 2 > FAR_ANIM * FAR_ANIM) continue;
+      animateCharacter(n.mesh, n.animDt, speed);
+      n.animDt = 0;
     }
     return visible;
   }

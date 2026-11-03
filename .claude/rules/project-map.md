@@ -69,7 +69,7 @@ E:\TruongHocOnline\
   js\vendor\three.module.min.js   Three.js r160 (MIT, kèm THREE-LICENSE.txt)
   mods\index.json, base.json   danh sách pack + đồ gốc (18 món: 9 đồ ăn, 1 đồng phục, 4 phụ kiện, 4 đồ chơi)
   sw.js                    cache offline — TĂNG `VERSION` mỗi lần sửa BẤT KỲ file nào (+ thêm file mới vào FILES).
-                           Hiện tại: `tho-v7`
+                           Hiện tại: `tho-v8`
   manifest.webmanifest     display fullscreen, orientation any
   _headers                 header cho Cloudflare Pages (sw.js + mods/ no-cache, nosniff, X-Frame-Options…)
   icon.svg, icons\*.png    PNG (192, 512, maskable 512, apple-touch 180) render từ icon.svg bằng Edge headless

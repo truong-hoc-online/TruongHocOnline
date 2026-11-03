@@ -186,6 +186,14 @@ async function launch() {
     await cdp.send('Emulation.setUserAgentOverride', { userAgent: IOS_UA, platform: 'iPhone' });
   }
   await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: HELPERS });
+  // Never touch the real Supabase project from tests (no fake players / feedback in production): calls to it fail
+  // like a phone with no signal, so this also covers "backend configured but offline". E2E_LIVE=1 lifts the block.
+  if (!process.env.E2E_LIVE) {
+    await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => {
+      const f = window.fetch.bind(window);
+      window.fetch = (u, o) => (/supabase\\.co/.test(String(u && u.url || u)) ? Promise.reject(new TypeError('offline (test)')) : f(u, o));
+    })();` });
+  }
 }
 
 async function evaluate(expr, timeout = 90000) {

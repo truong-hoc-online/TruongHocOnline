@@ -7,6 +7,11 @@
   thương mại phải ở host cho phép thương mại.
 - Không có server: tiến độ, coco, hàng chờ góp ý đều lưu localStorage trên máy.
 
+- **Supabase (từ 2026-11-04):** project `ahppbfhwhyiycxsusntj` (https://ahppbfhwhyiycxsusntj.supabase.co), org
+  "Moter School 1" (Free, cùng tài khoản với durian nhưng org riêng), Singapore. Khoá **publishable** trong
+  `js/config.js`. Đã chạy migrations 0000 + 0001 + seed; anonymous sign-ins bật. Migration mới phải chạy tay trong SQL
+  Editor (chưa nối CLI). Free: tạm dừng sau ~1 tuần không dùng → Restore trong dashboard.
+
 ## Đã chốt (2026-11-03)
 
 - **Phi thương mại trước**; bán coco + vật phẩm tính sau (có thể mở công ty ở Hồng Kông). Chưa có pháp nhân.

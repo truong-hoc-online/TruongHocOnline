@@ -31,6 +31,10 @@ gốc repo; `tests/package.json` chỉ có `{"type":"module"}`. Không dùng th�
   cấm nói + lọc từ tục → `endSession()` → tổng kết → 6A1→6A2 → giặt / bộ dự phòng / `finishWash()` → xong A4 lên 7A1
   → đóng game quá 6 giờ → vào lại giữa buổi → migrate save v1→v3 → SW có mods → không lỗi console. Thêm tính năng →
   thêm bước vào đây.
+- **E2E không bao giờ gọi Supabase thật:** `e2e.mjs` thay `fetch` tới `*.supabase.co` bằng lỗi mạng (như máy mất
+  sóng) → không tạo người chơi/góp ý giả trong database thật, đồng thời kiểm luôn "có backend nhưng offline".
+  `E2E_LIVE=1` để bỏ chặn (chỉ khi thật sự cần, rồi dọn dữ liệu). Thử online thì dùng script Node gọi thẳng
+  `js/backend.js` + `js/cloud.js` với `localStorage` giả (2 Map = 2 máy).
 - Mẹo E2E (đã áp dụng trong `e2e.mjs`, helper `window.__t`):
   - Gọi `void __g.interact()` (không await, nếu không sẽ treo chờ modal).
   - `drain()` bấm nút ĐẦU TIÊN của modal — đừng dùng để đóng tủ đồ (sẽ mặc đồ); bấm 'Thôi'.

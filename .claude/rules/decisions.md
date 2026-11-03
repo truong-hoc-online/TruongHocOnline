@@ -45,5 +45,8 @@ Trước khi đổi một điều dưới đây, hỏi người dùng: đa số 
 | Góp ý chỉ gửi khi đã đăng nhập ẩn danh, ≤10/giờ; duyệt: new → approved (cần sửa) → fixed/rejected/duplicate; đã chốt thì chỉ admin mở lại; nút "📋 Xuất cho Claude" | Người dùng muốn duyệt báo lỗi rồi đưa Claude sửa |
 | Nhân viên (admin/moderator/teacher) bắt buộc MFA (`aal2`) mới có quyền; điều chỉnh coco cần 2 admin; trang quản trị giữ phiên trong sessionStorage | An toàn dữ liệu trẻ em; không lặp điểm yếu token localStorage của durian-operadmin |
 | Test SQL/RLS bằng PGlite (Postgres trong Node) + `stub.sql` giả lập Supabase | Máy không có Docker/Postgres |
+| Câu hỏi do AI soạn chỉ nằm ở `questions/drafts/`; `import-questions` chỉ nhập dòng Nguồn "AI…" khi giáo viên ghi Đ/Sửa | child-safety: nội dung AI cho học sinh phải có người duyệt |
+| Agent song song: mỗi segment một git worktree `E:\TruongHocOnline-wt\<tên>` + nhánh `seg/<tên>` + cổng test riêng; phiên chính gộp, chạy đủ test, tăng `VERSION` một lần mỗi đợt | Tránh giẫm file/cổng; người dùng muốn chia việc cho nhiều agent |
+| Nút 🔊 có 3 chế độ (Bật / Chỉ hiệu ứng / Tắt); vào lớp = trống trường, ra chơi = trống 2 tiếng, sao đỏ bắt = còi; âm thanh tạo bằng WebAudio (không file) | Nhẹ cho PWA offline; agent A3 chọn, cần người dùng nghe thử |
 | Trang quản trị ở repo riêng `E:\GitHub\TruongHocOnline-Admin` | Tách khỏi game (host tĩnh khác, có Cloudflare Access) |
 | **CLAUDE.md = bản đồ dự án + nhật ký tiến độ** (trạng thái, việc tiếp theo, quyết định của phiên, nhật ký), luôn cập nhật cuối phiên; rules giữ quy tắc theo chủ đề | Người dùng yêu cầu rõ; trạng thái/nhật ký chỉ ở một nơi để không lệch nhau |

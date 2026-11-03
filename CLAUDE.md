@@ -24,7 +24,7 @@ mỗi phiên. Quy tắc chi tiết theo chủ đề nằm trong `.claude/rules/`
 | `testing.md` | Fuzz, unit, E2E 3 cỡ, mẹo test | `js/**/*.js`, `sw.js`, `index.html`, `style.css`, `mods/**` |
 
 Link game: https://truong-hoc-online.github.io/TruongHocOnline/ · Repo: github.com/truong-hoc-online/TruongHocOnline
-(public) · SW cache hiện tại: `tho-v6` · Save: `state.v = 3`.
+(public) · SW cache hiện tại: `tho-v7` · Save: `state.v = 3`.
 
 ## Trạng thái
 
@@ -46,7 +46,7 @@ Link game: https://truong-hoc-online.github.io/TruongHocOnline/ · Repo: github.
 | **S0** Bộ test trong repo `tests/` (`run-all.ps1`): fuzz, unit 38, E2E 69/69/71 × 3 cỡ | ✅ `fee81d0` · đạt cho `503d6a5` |
 | **A1** Xuất/nhập ngân hàng câu hỏi CSV cho giáo viên (`tools/`) | ✅ `fd3462e` · chờ giáo viên (P5) |
 | **B1** Supabase schema + RLS + hàm (lưu, mã chuyển máy, góp ý, ví coco, cửa hàng, xếp hạng, duyệt mod, nhân viên + MFA, nhật ký); test RLS bằng PGlite 75 | ✅ `4cd88bf`, `3b03717` · người dùng đang tạo project |
-| **B2–B5** Game nối Supabase: đăng nhập ẩn danh, sao lưu save, mã chuyển máy, đồng bộ coco, giá server, 🏆 xếp hạng; SW `tho-v6` | ✅ `503d6a5` · ⏳ **chưa thử online** (chờ URL + key) |
+| **B2–B5** Game nối Supabase: đăng nhập ẩn danh, sao lưu save, mã chuyển máy, đồng bộ coco, giá server, 🏆 xếp hạng; SW `tho-v7` | ✅ `503d6a5` · ⏳ **chưa thử online** (chờ URL + key) |
 | **D1–D5** Trang quản trị — repo riêng `E:\GitHub\TruongHocOnline-Admin` (Next 16 xuất tĩnh, MFA, sessionStorage, `?demo`, 📋 Xuất cho Claude, 28 test) | ✅ `f99dc81` (repo đó) · ⏳ chưa có remote, chưa deploy |
 | Quy tắc Claude tách vào `.claude/rules/` theo đặc tả Claude Code | ✅ `1db0c1c` |
 | **Chưa push** các commit của phiên này | ⏳ Người dùng push bằng GitHub Desktop |
@@ -74,33 +74,31 @@ thì gửi tiếp (SendMessage); phiên mới thì giao agent mới tiếp tục
 | A5 CI (`.github/workflows/test.yml`) + `tools/check-mod.mjs` | — | | ✅ gộp `4d689c5` · CI chưa chạy thật trên GitHub |
 | A7 244 câu AI nháp + 4 đề xuất sửa → `questions/drafts/`, cổng duyệt trong import | — | | ✅ gộp `7e0cffd` · chờ giáo viên |
 | A4 hiệu năng: lệnh vẽ 760→315 (−58%), tam giác −40%, gộp mesh tĩnh, chung hình nhân vật, NPC xa >25 m hoạt hình cách khung | — | | ✅ gộp `c423845`, test đủ đạt trên main · còn hook gợi ý: `renderer/scene/camera` vào `__g`, `npcs.focus = player.position`, chế độ bóng nhẹ cho máy yếu, nhãn tên cập nhật mỗi khung |
-| A3 âm thanh nền (WebAudio) | `a3-am-thanh` (gốc `e50974f`) | 8095 | ⏳ agent đang chạy |
+| A3 âm thanh nền WebAudio (sân/ngoài trời/lớp/nhà, trống trường, còi sao đỏ, nút 3 chế độ `tho-sound`) | — | | ✅ gộp `102ba5c`, E2E 81/81/83 · cần người nghe thử trên điện thoại thật |
 | A2 sự kiện / A6 chat câu có sẵn | (chưa tạo) | | chờ người dùng quyết (P4) |
+
+Hiện **không có worktree nào đang mở**. Cuối phiên 2026-11-03 máy được tắt theo yêu cầu người dùng sau khi mọi agent xong.
 
 ## Việc tiếp theo (phiên sau)
 
-Việc đã chia thành segment (mã P/S/A/Q/H/B/D) để giao người hoặc agent: xem [SEGMENTS.md](SEGMENTS.md). Đã xong:
-S0, A1, B1–B5 (phía code), D1–D5.
+Việc chia thành segment để giao người/agent: [SEGMENTS.md](SEGMENTS.md). Đã xong: S0, S1, A1, A3, A4, A5, A7, B1–B5
+(phía code), D1–D5. Mở phiên: chào người dùng, báo tóm tắt đợt agent (bảng trên), hỏi các việc dưới.
 
-0. **Ngay khi người dùng gửi Supabase URL + anon key** (đang tạo project "truong-hoc-online" trong org "Moter School
-   1", cùng tài khoản với durian): kiểm họ đã chạy 2 migration + seed → điền `js/config.js` → thử online thật (đăng
-   nhập ẩn danh, lưu, mã chuyển máy, coco, góp ý, xếp hạng) → tăng SW → `tests/run-all.ps1` → commit. Rồi hướng dẫn
-   tạo tài khoản admin + MFA + `insert into staff`, điền `.env.local` trang quản trị, tạo repo GitHub cho trang quản
-   trị, deploy Cloudflare Pages + Access.
-
-1. **Hỏi người dùng kết quả chơi thử** bản `6e35dcb` trên điện thoại (sau khi push): coco, cửa hàng, chọc bạn, góp ý,
-   nhịp 6 giờ / giặt 15 phút, màu áo các lớp, giật/lag. Sửa theo phản hồi trước (nhớ tăng `VERSION` trong `sw.js`).
-2. **Chờ / nhắc người dùng:** mua tên miền; tạo **project Supabase riêng** (Singapore, bật Anonymous sign-ins) → gửi
-   Project URL + anon key (KHÔNG gửi service_role). Hai câu còn treo: multiplayer để hẳn sau hay làm sớm bản nhẹ (câu
-   chat có sẵn)? Ai dùng trang quản trị (chỉ người dùng / cả giáo viên, người kiểm duyệt)?
-3. Có tên miền → chuyển game sang **Cloudflare Pages** (càng sớm càng ít người phải cài lại app).
-4. Có Supabase → **S1–S3**: bảng + RLS + test RLS; đăng nhập ẩn danh; lưu tiến độ lên mạng; bảng `feedback`
-   (insert-only) → điền `js/config.js`; chuyển ví coco lên server (giữ nguyên lời gọi `economy.js`).
-5. **Trang quản trị** (repo riêng, Next.js xuất tĩnh, Cloudflare Pages + Access, Supabase Auth + MFA, vai trò kiểm ở
-   RLS): Góp ý → Duyệt mod → Cửa hàng → Sổ cái coco. Chi tiết ở `infrastructure.md`.
-6. AI soạn câu hỏi → giáo viên duyệt (khi người dùng có khoá API).
-7. Hỏi tỉnh cho "Giáo dục địa phương"; tìm giáo viên duyệt câu hỏi.
-8. Sau đó: sự kiện (chào cờ, kiểm tra 15 phút, thi học kỳ), âm thanh nền, xếp hạng theo trường, multiplayer.
+1. **Supabase:** người dùng đang tạo project "truong-hoc-online" (org "Moter School 1", cùng tài khoản durian; đã
+   hướng dẫn form: Singapore, tắt "auto expose", bật auto RLS). Khi có URL + anon key: kiểm đã chạy **2 migration +
+   seed** → điền `js/config.js` → thử online thật (đăng nhập ẩn danh, lưu, mã chuyển máy, coco, góp ý, xếp hạng) →
+   tăng SW → `tests/run-all.ps1` → commit. Rồi: tài khoản admin + MFA + `insert into staff`, `.env.local` trang quản
+   trị, repo GitHub **private** cho trang quản trị, deploy Cloudflare Pages + Access.
+2. **Push** (người dùng, GitHub Desktop) → xem lần chạy CI đầu tiên trên GitHub (job e2e trên Linux chưa từng chạy).
+3. **Hỏi người dùng:** chơi thử bản mới (giật/lag sau A4, âm thanh A3: trống có giống trống trường không, tiếng sân
+   có như tiếng ồn/gió, còi có chói, iPhone im trước khi chạm); P4: A2 sự kiện (thưởng phạt, thi học kỳ bắt buộc?),
+   A6 multiplayer nhẹ sớm hay để sau, giới hạn giá 500 hay 1000, ai dùng trang quản trị, tỉnh cho Địa phương.
+4. **Giáo viên (P5):** gửi `questions/drafts/2026-11-03-ai.csv` + `fixes-2026-11-03.csv` + `tools/HUONG-DAN-DUYET.md`
+   (và `tools/out/questions-review.csv` cho câu cũ). Câu AI ít chắc: tuổi chịu TNHS (GDCD 9), Holland (HĐTN 9),
+   COUNTIF/IF (Tin 9), "Nói giảm nói tránh"/"Đất rừng phương Nam" lớp 7; check-drafts cảnh báo van-ai-023, cong-nghe-ai-003.
+5. Hook A4 còn lại (nhỏ, tự làm): `renderer/scene/camera` vào `__g`; `npcs.focus = player.position` trong
+   `makePlayer`; chế độ bóng nhẹ khi `hardwareConcurrency <= 4`; nhãn tên NPC cập nhật thưa hơn.
+6. Tên miền → H1 Cloudflare Pages. Sau: AI1 (khoá API), multiplayer.
 
 ## Quyết định quan trọng trong phiên 2026-11-03
 
@@ -124,6 +122,13 @@ Danh sách đầy đủ (cả các phiên trước) ở `.claude/rules/decisions
 ## Nhật ký phiên
 
 Mới nhất ở trên.
+
+- **2026-11-03 · máy bàn (tiếp 3)** — "Tiếp tục chia agent và segment" → 4 agent song song trong git worktree riêng
+  (công cụ worktree tự động lỗi vì git không trong PATH → tạo tay `E:\TruongHocOnline-wt\`), mỗi agent một cổng test
+  (sửa `run-all -Port` truyền xuống E2E, `ce3bdc4`): A5 CI + check-mod, A7 244 câu AI nháp + cổng duyệt, S1 tách
+  game.js 15 module, A4 hiệu năng −58% lệnh vẽ; sau S1 giao A3 âm thanh. Gộp lần lượt (xung đột nhỏ tools/README),
+  chạy đủ test trên main sau mỗi đợt; SW `tho-v7`. Người dùng hỏi tắt máy có phải chia lại không → không (ghi bảng
+  agent vào CLAUDE.md); yêu cầu **tắt máy khi agent xong** → tắt bằng `shutdown /s /t 120`.
 
 - **2026-11-03 · máy bàn (tiếp 2)** — Người dùng: P1 chơi thử dần + muốn chỗ duyệt báo lỗi rồi nhờ Claude sửa; làm
   A1, backend, trang quản trị. Giao agent S0 (test), A1 (CSV câu hỏi), D1–D5 (trang quản trị, repo riêng); tự làm B1

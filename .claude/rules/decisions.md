@@ -49,4 +49,7 @@ Trước khi đổi một điều dưới đây, hỏi người dùng: đa số 
 | Agent song song: mỗi segment một git worktree `E:\TruongHocOnline-wt\<tên>` + nhánh `seg/<tên>` + cổng test riêng; phiên chính gộp, chạy đủ test, tăng `VERSION` một lần mỗi đợt | Tránh giẫm file/cổng; người dùng muốn chia việc cho nhiều agent |
 | Nút 🔊 có 3 chế độ (Bật / Chỉ hiệu ứng / Tắt); vào lớp = trống trường, ra chơi = trống 2 tiếng, sao đỏ bắt = còi; âm thanh tạo bằng WebAudio (không file) | Nhẹ cho PWA offline; agent A3 chọn, cần người dùng nghe thử |
 | Trang quản trị ở repo riêng `E:\GitHub\TruongHocOnline-Admin` | Tách khỏi game (host tĩnh khác, có Cloudflare Access) |
+| Supabase thật: project `ahppbfhwhyiycxsusntj`, org riêng "Moter School 1" (cùng tài khoản durian); khoá publishable công khai trong `js/config.js` (2026-11-04) | Người dùng chọn dùng chung tài khoản; khoá publishable an toàn khi RLS đúng |
+| E2E chặn gọi Supabase thật (`E2E_LIVE=1` bỏ chặn) | Không tạo dữ liệu giả trong database thật |
+| Trang quản trị deploy Cloudflare Pages + Access, **không Vercel** | Vercel Hobby cấm thương mại; Access miễn phí |
 | **CLAUDE.md = bản đồ dự án + nhật ký tiến độ** (trạng thái, việc tiếp theo, quyết định của phiên, nhật ký), luôn cập nhật cuối phiên; rules giữ quy tắc theo chủ đề | Người dùng yêu cầu rõ; trạng thái/nhật ký chỉ ở một nơi để không lệch nhau |

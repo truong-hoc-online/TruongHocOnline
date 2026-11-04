@@ -28,7 +28,7 @@ Link game: https://truong-hoc-online.github.io/TruongHocOnline/ · Repo: github.
 
 ## Trạng thái
 
-**Cập nhật 2026-11-03 (cuối phiên)**
+**Cập nhật 2026-11-04 (cuối phiên, trước khi người dùng chuyển sang máy mới — xem "Chuyển máy" bên dưới)**
 
 | Phần | Trạng thái |
 |---|---|
@@ -47,10 +47,11 @@ Link game: https://truong-hoc-online.github.io/TruongHocOnline/ · Repo: github.
 | **A1** Xuất/nhập ngân hàng câu hỏi CSV cho giáo viên (`tools/`) | ✅ `fd3462e` · chờ giáo viên (P5) |
 | **B1** Supabase schema + RLS + hàm (lưu, mã chuyển máy, góp ý, ví coco, cửa hàng, xếp hạng, duyệt mod, nhân viên + MFA, nhật ký); test RLS bằng PGlite 75 | ✅ `4cd88bf`, `3b03717` · người dùng đang tạo project |
 | **B2–B5** Game nối Supabase: đăng nhập ẩn danh, sao lưu save, mã chuyển máy, đồng bộ coco, giá server, 🏆 xếp hạng | ✅ `503d6a5` |
-| **Supabase thật** project `ahppbfhwhyiycxsusntj` (org "Moter School 1", Singapore): 2 migration + seed đã chạy, anonymous sign-in bật, khoá publishable trong `js/config.js`; thử online bằng chính `backend.js`/`cloud.js` 20/20 (2 máy giả lập); E2E chặn gọi Supabase (`E2E_LIVE=1` để bỏ chặn); SW `tho-v8` | ✅ 2026-11-04 · ⏳ chưa push · còn dữ liệu thử: người chơi "Claude thử" + 1 góp ý "Claude: kiểm thử" |
+| **Supabase thật** project `ahppbfhwhyiycxsusntj` (org "Moter School 1", Singapore): 2 migration + seed đã chạy, anonymous sign-in bật, khoá publishable trong `js/config.js`; thử online bằng chính `backend.js`/`cloud.js` 20/20 (2 máy giả lập); E2E chặn gọi Supabase (`E2E_LIVE=1` để bỏ chặn); SW `tho-v8` | ✅ 2026-11-04 · đã push · còn dữ liệu thử: người chơi "Claude thử" + 1 góp ý "Claude: kiểm thử" |
 | **D1–D5** Trang quản trị — repo riêng `E:\GitHub\TruongHocOnline-Admin` (Next 16 xuất tĩnh, MFA, sessionStorage, `?demo`, 📋 Xuất cho Claude, 28 test) | ✅ `f99dc81` (repo đó) · ⏳ chưa có remote, chưa deploy |
 | Quy tắc Claude tách vào `.claude/rules/` theo đặc tả Claude Code | ✅ `1db0c1c` |
-| **Chưa push** các commit của phiên này | ⏳ Người dùng push bằng GitHub Desktop |
+| Push lên GitHub | ✅ `main` = `origin/main` (`bf92331`) lúc 2026-11-04 · CI lần đầu: chưa xem kết quả |
+| Trang quản trị trên GitHub | ⏳ **chưa có remote** — phải publish (private) trước khi bỏ máy cũ |
 | Cloudflare Pages + tên miền riêng | ⏳ Chờ người dùng mua tên miền |
 | AI soạn câu hỏi → giáo viên duyệt | 💡 Đề xuất — cần khoá API |
 | Giáo viên duyệt câu hỏi `js/subjects.js` | ❌ Chưa |
@@ -79,7 +80,29 @@ thì gửi tiếp (SendMessage); phiên mới thì giao agent mới tiếp tục
 
 Hiện **không có worktree nào đang mở**. Cuối phiên 2026-11-03 máy được tắt theo yêu cầu người dùng sau khi mọi agent xong.
 
+## Chuyển máy (2026-11-04)
+
+Người dùng chuyển sang máy mới (Core Ultra 9 285K, RTX 5090 32 GB, 128 GB RAM, SSD 2 TB + SSD 320 GB). Bộ nhớ
+`~/.claude/projects/...` **không theo sang** máy mới → mọi thứ cần nhớ phải nằm trong CLAUDE.md + `.claude/rules/`.
+
+- **Trước khi bỏ máy cũ:** push `E:\DamTangOnline` (còn 14 commit) và publish `E:\GitHub\TruongHocOnline-Admin`
+  (repo **private**, chưa có remote). TruongHocOnline đã push đủ.
+- **Máy mới cần:** GitHub Desktop (đăng nhập), Node 24, Python 3 (`python -m http.server`), Edge (có sẵn). Nên cài
+  thêm **Git for Windows** và để `git` trong PATH → công cụ Agent `isolation: worktree` có thể chạy được (máy cũ lỗi vì
+  thiếu). Clone về **đúng đường dẫn cũ** nếu được: `E:\TruongHocOnline`, `E:\DamTangOnline`,
+  `E:\GitHub\TruongHocOnline-Admin` (đường dẫn này có trong rules/brief agent); nếu khác ổ thì sửa
+  `workflow-git.md` + CLAUDE.md của cả hai dự án.
+- **Đường dẫn công cụ đổi:** git của GitHub Desktop nằm trong `%LOCALAPPDATA%\GitHubDesktop\app-<phiên bản>\resources\
+  app\git\cmd\git.exe` (số phiên bản và tên user có thể khác) — tìm lại rồi sửa `workflow-git.md`. Python có thể không
+  ở `C:\Python314` → `tests\run-all.ps1 -Python <đường dẫn>`.
+- **Sau khi clone:** `cd supabase\tests; npm install` (test RLS); trang quản trị: `npm ci` + tạo lại `.env.local`
+  (gitignore): `NEXT_PUBLIC_SUPABASE_URL=https://ahppbfhwhyiycxsusntj.supabase.co`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_wE0xQ01XQ1E7NWumRtr9kg_kwgJeWPU` (khoá công khai, đã có trong
+  `js/config.js`). Chạy `tests\run-all.ps1` một lần để chắc máy mới đủ công cụ.
+
 ## Việc tiếp theo (phiên sau)
+
+0. **Máy mới:** làm mục "Chuyển máy" ở trên, chạy test, sửa đường dẫn công cụ trong `workflow-git.md`.
 
 Việc chia thành segment để giao người/agent: [SEGMENTS.md](SEGMENTS.md). Đã xong: S0, S1, A1, A3, A4, A5, A7, B1–B5
 (phía code), D1–D5. Mở phiên: chào người dùng, báo tóm tắt đợt agent (bảng trên), hỏi các việc dưới.
@@ -98,6 +121,18 @@ Việc chia thành segment để giao người/agent: [SEGMENTS.md](SEGMENTS.md)
 5. Hook A4 còn lại (nhỏ, tự làm): `renderer/scene/camera` vào `__g`; `npcs.focus = player.position` trong
    `makePlayer`; chế độ bóng nhẹ khi `hardwareConcurrency <= 4`; nhãn tên NPC cập nhật thưa hơn.
 6. Tên miền → H1 Cloudflare Pages. Sau: AI1 (khoá API), multiplayer.
+
+## Quyết định quan trọng trong phiên 2026-11-04
+
+| Quyết định | Lý do |
+|---|---|
+| Supabase project riêng `ahppbfhwhyiycxsusntj` trong **org riêng "Moter School 1"**, cùng tài khoản với durian | Người dùng hỏi dùng chung tài khoản → được; org riêng để tách thành viên/hoá đơn sau này |
+| Khi tạo project: tắt "Automatically expose new tables", bật "automatic RLS" | Lược đồ tự cấp quyền từng cột; thêm lớp an toàn |
+| Dùng khoá **publishable** (`sb_publishable_…`) trong `js/config.js`, công khai trong repo | Khoá công khai theo thiết kế; quyền do RLS; `secret`/`service_role` không bao giờ đưa vào |
+| E2E **chặn mọi gọi Supabase thật** (`E2E_LIVE=1` mới bỏ chặn); thử online bằng script Node dùng `backend.js`/`cloud.js` | Không tạo người chơi/góp ý giả trong database thật |
+| Trang quản trị **không dùng Vercel** → Cloudflare Pages + Access (chạy thử local trước) | Vercel Hobby cấm thương mại; Access khoá trang theo email miễn phí |
+| Dự án mới **Đám Tang Online** ở repo riêng `E:\DamTangOnline` (GitHub `damtangonline/DamTangOnline`), có CLAUDE.md riêng | Người dùng yêu cầu dự án mới; tách hẳn khỏi trường học, chỉ **chép** kỹ thuật sang (không sửa repo này) |
+| Supabase Free đã dùng hết 2 project (durian + trường học) → Đám Tang dùng **Cloudflare** (Workers + D1 + Durable Objects) | Không phá giới hạn Free; Cloudflare hợp phòng realtime |
 
 ## Quyết định quan trọng trong phiên 2026-11-03
 
@@ -122,9 +157,14 @@ Danh sách đầy đủ (cả các phiên trước) ở `.claude/rules/decisions
 
 Mới nhất ở trên.
 
-- **2026-11-04 · máy bàn** — Người dùng tạo project Supabase `ahppbfhwhyiycxsusntj`, hỏi anon key là gì → giải thích
-  publishable vs secret. Thử lần 1: chưa chạy SQL, chưa bật anonymous → hướng dẫn; lần 2 đạt. Thử online bằng code
-  game thật 20/20, điền `js/config.js`, E2E chặn gọi Supabase để không tạo dữ liệu giả, SW `tho-v8`, test đủ đạt.
+- **2026-11-04 · máy bàn (máy cũ, phiên cuối trên máy này)** — Người dùng tạo project Supabase
+  `ahppbfhwhyiycxsusntj`, hỏi anon key là gì → giải thích publishable vs secret. Thử lần 1: chưa chạy SQL, chưa bật
+  anonymous → hướng dẫn; lần 2 đạt. Thử online bằng code game thật 20/20, điền `js/config.js`, E2E chặn gọi Supabase,
+  SW `tho-v8`, test đủ đạt (`bf92331`, đã push). Điền `.env.local` trang quản trị (local). Hỏi "trang quản trị có
+  phải dùng Vercel?" → không, Cloudflare Pages; gợi ý chạy local trước. Người dùng mở **dự án mới Đám Tang Online**
+  (repo riêng, xem CLAUDE.md bên đó: GDD v2, C1 nội dung, F0 nền tảng, S1 server Cloudflare). Hướng dẫn publish GitHub
+  Pages cho repo mới. Tắt máy theo yêu cầu khi agent xong. Cuối phiên: người dùng sắp **chuyển máy** → thêm mục
+  "Chuyển máy"; phát hiện trang quản trị chưa có remote, Đám Tang còn 14 commit chưa push.
 
 - **2026-11-03 · máy bàn (tiếp 3)** — "Tiếp tục chia agent và segment" → 4 agent song song trong git worktree riêng
   (công cụ worktree tự động lỗi vì git không trong PATH → tạo tay `E:\TruongHocOnline-wt\`), mỗi agent một cổng test
